@@ -30,12 +30,12 @@ export const NovaOrbCanvas = ({
     rotationSpeed: 0.0008, // 更慢的自转速度（从 0.003 降到 0.0008）
     damping: 0.05,         // 阻尼系数：越小动作越平滑
 
-    // 颜色配置
-    colorIdle: 'rgba(255, 255, 255, 0.6)',
-    colorListening: 'rgba(0, 150, 255, 0.6)',
-    colorHearing: 'rgba(0, 180, 255, 0.9)',
-    colorThinking: 'rgba(150, 0, 255, 0.8)',
-    colorSpeaking: 'rgba(0, 243, 255, 1.0)',
+    // 颜色配置 (Pika 青色主题)
+    colorIdle: 'rgba(203, 213, 225, 0.7)',      // 银色 (Slate 300)
+    colorListening: 'rgba(34, 211, 238, 0.6)',  // 青色 (Cyan 400)
+    colorHearing: 'rgba(34, 211, 238, 0.9)',    // 亮青色
+    colorThinking: 'rgba(6, 182, 212, 0.8)',    // 深青色 (Cyan 500)
+    colorSpeaking: 'rgba(34, 211, 238, 1.0)',   // 纯青色
   })
 
   // 内部状态

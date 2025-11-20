@@ -10,7 +10,7 @@
   height: 100vh;
   overflow: hidden;
   position: relative;
-  background: #000;
+  background: radial-gradient(ellipse at center, #1e293b 0%, #0f172a 50%, #020617 100%);
 }
 
 .onboarding-step {
@@ -199,13 +199,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #000;
+  background: radial-gradient(ellipse at center, #1e293b 0%, #0f172a 50%, #020617 100%);
   font-family: 'VT323', monospace;
   font-size: 24px;
 }
 
 .onboarding-loading {
-  color: #00FF41;
+  color: #22d3ee;
   position: relative;
 }
 
@@ -228,8 +228,8 @@
   font-size: 20px;
   margin-bottom: 12px;
   font-family: 'VT323', monospace;
-  color: #00FF41;
-  text-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+  color: #22d3ee;
+  text-shadow: 0 0 10px rgba(34, 211, 238, 0.5);
   transition: opacity 0.3s ease;
 }
 
@@ -249,9 +249,9 @@
 .loading-dots .dot {
   width: 12px;
   height: 12px;
-  background: #00FF41;
+  background: #22d3ee;
   border-radius: 50%;
-  box-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+  box-shadow: 0 0 10px rgba(34, 211, 238, 0.5);
   animation: pulse-dot 1.4s ease-in-out infinite;
 }
 
@@ -303,7 +303,7 @@
   height: 100%;
   background: linear-gradient(
     transparent 50%,
-    rgba(0, 255, 65, 0.03) 50%
+    rgba(34, 211, 238, 0.03) 50%
   );
   background-size: 100% 4px;
   pointer-events: none;
@@ -484,8 +484,8 @@
 .boot-sequence {
   font-family: 'VT323', monospace;
   font-size: 18px;
-  color: #00FF41;
-  text-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+  color: #22d3ee;
+  text-shadow: 0 0 10px rgba(34, 211, 238, 0.5);
   margin-bottom: 40px;
   text-align: left;
   max-width: 800px;
@@ -521,8 +521,8 @@
 .entity-greeting {
   font-family: 'VT323', monospace;
   font-size: 28px;
-  color: #00FF41;
-  text-shadow: 0 0 20px rgba(0, 255, 65, 0.6);
+  color: #22d3ee;
+  text-shadow: 0 0 20px rgba(34, 211, 238, 0.6);
   margin: 20px 0 10px 0;
   letter-spacing: 2px;
   font-weight: normal;
@@ -532,7 +532,7 @@
 .entity-subtext {
   font-family: 'VT323', monospace;
   font-size: 28px;
-  color: #00FF41;
+  color: #22d3ee;
   opacity: 0.7;
   margin: 5px 0 10px 0;
 }
@@ -549,7 +549,7 @@
   display: inline-block;
   margin-left: 2px;
   animation: cursor-blink-anim 0.8s step-end infinite;
-  color: #00FF41;
+  color: #22d3ee;
 }
 
 @keyframes cursor-blink-anim {
@@ -564,8 +564,8 @@
 /* 故障边框按钮 */
 .glitch-border {
   position: relative;
-  border: 2px solid #00FF41;
-  box-shadow: 0 0 20px rgba(0, 255, 65, 0.3);
+  border: 2px solid #22d3ee;
+  box-shadow: 0 0 20px rgba(34, 211, 238, 0.3);
 }
 
 .glitch-border:hover {
@@ -573,7 +573,7 @@
 }
 
 @keyframes border-glitch {
-  0%, 100% { box-shadow: 0 0 20px rgba(0, 255, 65, 0.3); }
+  0%, 100% { box-shadow: 0 0 20px rgba(34, 211, 238, 0.3); }
   25% { box-shadow: -2px 0 20px rgba(255, 0, 0, 0.5), 2px 0 20px rgba(0, 255, 255, 0.5); }
   50% { box-shadow: 2px 0 20px rgba(255, 0, 0, 0.5), -2px 0 20px rgba(0, 255, 255, 0.5); }
   75% { box-shadow: -1px 0 20px rgba(255, 0, 0, 0.5), 1px 0 20px rgba(0, 255, 255, 0.5); }
@@ -624,9 +624,9 @@
 .rec-indicator {
   font-family: 'VT323', monospace;
   font-size: 18px;
-  color: #00FF41;
+  color: #22d3ee;
   background: rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(0, 255, 65, 0.3);
+  border: 1px solid rgba(34, 211, 238, 0.3);
   padding: 8px 16px;
   border-radius: 4px;
   cursor: pointer;
@@ -634,8 +634,8 @@
 }
 
 .back-btn:hover {
-  background: rgba(0, 255, 65, 0.1);
-  box-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+  background: rgba(34, 211, 238, 0.1);
+  box-shadow: 0 0 10px rgba(34, 211, 238, 0.5);
 }
 
 .rec-indicator {
@@ -657,17 +657,17 @@
   font-size: 24px;
   padding: 20px 60px;
   background: rgba(0, 0, 0, 0.7);
-  border: 2px solid #00FF41;
-  color: #00FF41;
+  border: 2px solid #22d3ee;
+  color: #22d3ee;
   cursor: pointer;
   border-radius: 8px;
-  box-shadow: 0 0 20px rgba(0, 255, 65, 0.3);
+  box-shadow: 0 0 20px rgba(34, 211, 238, 0.3);
   transition: all 0.3s ease;
 }
 
 .capture-btn:hover {
-  background: rgba(0, 255, 65, 0.1);
-  box-shadow: 0 0 30px rgba(0, 255, 65, 0.6);
+  background: rgba(34, 211, 238, 0.1);
+  box-shadow: 0 0 30px rgba(34, 211, 238, 0.6);
   transform: scale(1.05);
 }
 
@@ -700,14 +700,14 @@
 }
 
 .confirm-btn {
-  border-color: #00FF41;
-  color: #00FF41;
-  box-shadow: 0 0 20px rgba(0, 255, 65, 0.3);
+  border-color: #22d3ee;
+  color: #22d3ee;
+  box-shadow: 0 0 20px rgba(34, 211, 238, 0.3);
 }
 
 .confirm-btn:hover {
-  background: rgba(0, 255, 65, 0.1);
-  box-shadow: 0 0 30px rgba(0, 255, 65, 0.6);
+  background: rgba(34, 211, 238, 0.1);
+  box-shadow: 0 0 30px rgba(34, 211, 238, 0.6);
 }
 
 .retake-btn {
@@ -735,8 +735,8 @@
   width: 60px;
   height: 60px;
   margin: 0 auto 20px;
-  border: 4px solid rgba(0, 255, 65, 0.2);
-  border-top-color: #00FF41;
+  border: 4px solid rgba(34, 211, 238, 0.2);
+  border-top-color: #22d3ee;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -748,8 +748,8 @@
 .analyzing-text {
   font-family: 'VT323', monospace;
   font-size: 24px;
-  color: #00FF41;
-  text-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+  color: #22d3ee;
+  text-shadow: 0 0 10px rgba(34, 211, 238, 0.5);
 }
 
 /* 对话区域 */
@@ -767,13 +767,13 @@
 .ai-speech {
   font-family: 'VT323', monospace;
   font-size: 22px;
-  color: #00FF41;
+  color: #22d3ee;
   background: rgba(0, 0, 0, 0.7);
   padding: 16px 24px;
   margin: 12px 0;
-  border: 1px solid rgba(0, 255, 65, 0.3);
+  border: 1px solid rgba(34, 211, 238, 0.3);
   border-radius: 8px;
-  text-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+  text-shadow: 0 0 10px rgba(34, 211, 238, 0.5);
   animation: fadeIn 0.8s ease-out;
 }
 
@@ -810,10 +810,10 @@
 .template-prompt {
   font-family: 'VT323', monospace;
   font-size: 24px;
-  color: #00FF41;
+  color: #22d3ee;
   text-align: center;
   margin-bottom: 24px;
-  text-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+  text-shadow: 0 0 10px rgba(34, 211, 238, 0.5);
 }
 
 .template-grid {
@@ -824,21 +824,21 @@
 
 .template-card {
   background: rgba(0, 0, 0, 0.7);
-  border: 2px solid rgba(0, 255, 65, 0.3);
+  border: 2px solid rgba(34, 211, 238, 0.3);
   padding: 20px;
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.3s ease;
   font-family: 'VT323', monospace;
   font-size: 18px;
-  color: #00FF41;
+  color: #22d3ee;
   text-transform: uppercase;
 }
 
 .template-card:hover {
-  background: rgba(0, 255, 65, 0.1);
-  border-color: #00FF41;
-  box-shadow: 0 0 20px rgba(0, 255, 65, 0.5);
+  background: rgba(34, 211, 238, 0.1);
+  border-color: #22d3ee;
+  box-shadow: 0 0 20px rgba(34, 211, 238, 0.5);
   transform: scale(1.05);
 }
 
@@ -909,8 +909,8 @@
 .status-text {
   font-family: 'VT323', monospace;
   font-size: 20px;
-  color: #00FF41;
-  text-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+  color: #22d3ee;
+  text-shadow: 0 0 10px rgba(34, 211, 238, 0.5);
   margin-bottom: 8px;
   display: block;
 }
@@ -918,16 +918,16 @@
 .progress-bar {
   width: 100%;
   height: 6px;
-  background: rgba(0, 255, 65, 0.2);
+  background: rgba(34, 211, 238, 0.2);
   border-radius: 3px;
   overflow: hidden;
 }
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #00FF41, #00FFAA);
+  background: linear-gradient(90deg, #22d3ee, #06b6d4);
   transition: width 0.5s ease;
-  box-shadow: 0 0 10px rgba(0, 255, 65, 0.6);
+  box-shadow: 0 0 10px rgba(34, 211, 238, 0.6);
 }
 
 /* 上传区域 */
@@ -941,14 +941,14 @@
 .entity-speech {
   font-family: 'VT323', monospace;
   font-size: 22px;
-  color: #00FF41;
+  color: #22d3ee;
   margin-bottom: 40px;
   line-height: 1.6;
 }
 
 .entity-speech p {
   margin: 12px 0;
-  text-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+  text-shadow: 0 0 10px rgba(34, 211, 238, 0.5);
   animation: fadeIn 0.8s ease-out;
 }
 
@@ -962,7 +962,7 @@
 
 .upload-slot {
   aspect-ratio: 1;
-  border: 2px dashed rgba(0, 255, 65, 0.3);
+  border: 2px dashed rgba(34, 211, 238, 0.3);
   border-radius: 8px;
   display: flex;
   align-items: center;
@@ -975,14 +975,14 @@
 }
 
 .upload-slot:hover {
-  border-color: #00FF41;
-  background: rgba(0, 255, 65, 0.05);
-  box-shadow: 0 0 15px rgba(0, 255, 65, 0.3);
+  border-color: #22d3ee;
+  background: rgba(34, 211, 238, 0.05);
+  box-shadow: 0 0 15px rgba(34, 211, 238, 0.3);
 }
 
 .upload-slot.filled {
   border-style: solid;
-  border-color: #00FF41;
+  border-color: #22d3ee;
   cursor: default;
 }
 
@@ -995,7 +995,7 @@
 .upload-prompt {
   font-family: 'VT323', monospace;
   font-size: 16px;
-  color: #00FF41;
+  color: #22d3ee;
   opacity: 0.7;
 }
 
@@ -1005,7 +1005,7 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background: radial-gradient(circle, rgba(0, 255, 65, 0.4), transparent);
+  background: radial-gradient(circle, rgba(34, 211, 238, 0.4), transparent);
   animation: absorb 1.5s ease-out;
   pointer-events: none;
 }
@@ -1029,18 +1029,18 @@
   font-size: 22px;
   padding: 16px 48px;
   background: rgba(0, 0, 0, 0.7);
-  border: 2px solid #00FF41;
-  color: #00FF41;
+  border: 2px solid #22d3ee;
+  color: #22d3ee;
   cursor: pointer;
   border-radius: 8px;
-  box-shadow: 0 0 20px rgba(0, 255, 65, 0.3);
+  box-shadow: 0 0 20px rgba(34, 211, 238, 0.3);
   transition: all 0.3s ease;
   letter-spacing: 2px;
 }
 
 .done-btn:hover:not(:disabled) {
-  background: rgba(0, 255, 65, 0.1);
-  box-shadow: 0 0 30px rgba(0, 255, 65, 0.6);
+  background: rgba(34, 211, 238, 0.1);
+  box-shadow: 0 0 30px rgba(34, 211, 238, 0.6);
   transform: scale(1.05);
 }
 
@@ -1062,8 +1062,8 @@
 .generation-message {
   font-family: 'VT323', monospace;
   font-size: 22px;
-  color: #00FF41;
-  text-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+  color: #22d3ee;
+  text-shadow: 0 0 10px rgba(34, 211, 238, 0.5);
   margin-top: 24px;
 }
 
@@ -1077,19 +1077,19 @@
   font-size: 28px;
   padding: 20px 60px;
   background: rgba(0, 0, 0, 0.8);
-  border: 3px solid #00FF41;
-  color: #00FF41;
+  border: 3px solid #22d3ee;
+  color: #22d3ee;
   cursor: pointer;
   border-radius: 12px;
-  box-shadow: 0 0 30px rgba(0, 255, 65, 0.5);
+  box-shadow: 0 0 30px rgba(34, 211, 238, 0.5);
   transition: all 0.3s ease;
   letter-spacing: 3px;
   z-index: 20;
 }
 
 .reveal-btn:hover {
-  background: rgba(0, 255, 65, 0.1);
-  box-shadow: 0 0 40px rgba(0, 255, 65, 0.8);
+  background: rgba(34, 211, 238, 0.1);
+  box-shadow: 0 0 40px rgba(34, 211, 238, 0.8);
   transform: translateX(-50%) scale(1.1);
 }
 
@@ -1099,10 +1099,10 @@
 
 @keyframes eye-pulse {
   0%, 100% {
-    box-shadow: 0 0 30px rgba(0, 255, 65, 0.5);
+    box-shadow: 0 0 30px rgba(34, 211, 238, 0.5);
   }
   50% {
-    box-shadow: 0 0 50px rgba(0, 255, 65, 0.8);
+    box-shadow: 0 0 50px rgba(34, 211, 238, 0.8);
   }
 }
 
@@ -1255,7 +1255,7 @@
 }
 
 .history-question {
-  color: #00FF41;
+  color: #22d3ee;
   margin-bottom: 4px;
 }
 
@@ -1279,7 +1279,7 @@
   position: absolute;
   width: 40px;
   height: 40px;
-  border-color: rgba(0, 255, 65, 0.3);
+  border-color: rgba(34, 211, 238, 0.3);
   border-style: solid;
 }
 
@@ -1321,14 +1321,14 @@
   bottom: 20px;
   left: 20px;
   background: rgba(0, 0, 0, 0.7);
-  border: 1px solid rgba(0, 255, 65, 0.5);
+  border: 1px solid rgba(34, 211, 238, 0.5);
   padding: 8px 12px;
   font-family: 'VT323', monospace;
   font-size: 14px;
-  color: #00FF41;
+  color: #22d3ee;
   z-index: 9999;
   border-radius: 4px;
-  box-shadow: 0 0 10px rgba(0, 255, 65, 0.3);
+  box-shadow: 0 0 10px rgba(34, 211, 238, 0.3);
   pointer-events: none;
 }
 
@@ -1346,8 +1346,8 @@
    相册按钮（右下角）
    ======================================== */
 .gallery-btn:hover {
-  background: rgba(0, 255, 65, 0.1) !important;
-  box-shadow: 0 0 15px rgba(0, 255, 65, 0.5);
+  background: rgba(34, 211, 238, 0.1) !important;
+  box-shadow: 0 0 15px rgba(34, 211, 238, 0.5);
   transform: scale(1.05);
 }
 
@@ -1382,11 +1382,11 @@
 .loading-text {
   font-family: 'VT323', monospace;
   font-size: 28px;
-  color: #00FF41;
+  color: #22d3ee;
   margin-top: 30px;
   text-align: center;
   padding: 0 40px;
-  text-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+  text-shadow: 0 0 10px rgba(34, 211, 238, 0.5);
   animation: pulse 2s ease-in-out infinite;
 }
 
@@ -1394,7 +1394,7 @@
   width: 60%;
   max-width: 400px;
   height: 4px;
-  background: rgba(0, 255, 65, 0.2);
+  background: rgba(34, 211, 238, 0.2);
   margin-top: 40px;
   border-radius: 2px;
   position: relative;
@@ -1408,7 +1408,7 @@
   left: -100%;
   width: 50%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, #00FF41, transparent);
+  background: linear-gradient(90deg, transparent, #22d3ee, transparent);
   animation: loading-slide 1.5s ease-in-out infinite;
 }
 
@@ -1453,13 +1453,13 @@
 /* Character Card */
 .character-card {
   background: rgba(0, 0, 0, 0.7);
-  border: 2px solid #00FF41;
+  border: 2px solid #22d3ee;
   border-radius: 12px;
   padding: 32px 40px;
   max-width: 600px;
   width: 90%;
   margin-bottom: 60px;
-  box-shadow: 0 0 40px rgba(0, 255, 65, 0.3);
+  box-shadow: 0 0 40px rgba(34, 211, 238, 0.3);
   position: relative;
 }
 
@@ -1470,7 +1470,7 @@
   left: -2px;
   right: -2px;
   bottom: -2px;
-  background: linear-gradient(45deg, #00FF41, transparent, #00FF41);
+  background: linear-gradient(45deg, #22d3ee, transparent, #22d3ee);
   border-radius: 12px;
   z-index: -1;
   opacity: 0.3;
@@ -1498,9 +1498,9 @@
   font-family: 'VT323', monospace;
   font-size: 20px;
   padding: 8px 20px;
-  background: rgba(0, 255, 65, 0.1);
-  border: 1px solid rgba(0, 255, 65, 0.5);
-  color: #00FF41;
+  background: rgba(34, 211, 238, 0.1);
+  border: 1px solid rgba(34, 211, 238, 0.5);
+  color: #22d3ee;
   border-radius: 20px;
   text-transform: uppercase;
   letter-spacing: 1px;
@@ -1508,8 +1508,8 @@
 }
 
 .personality-tags .tag:hover {
-  background: rgba(0, 255, 65, 0.2);
-  box-shadow: 0 0 15px rgba(0, 255, 65, 0.4);
+  background: rgba(34, 211, 238, 0.2);
+  box-shadow: 0 0 15px rgba(34, 211, 238, 0.4);
 }
 
 .character-intro {
@@ -1535,10 +1535,10 @@
 .prompt-text {
   font-family: 'VT323', monospace;
   font-size: 26px;
-  color: #00FF41;
+  color: #22d3ee;
   text-align: center;
   margin: 0;
-  text-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+  text-shadow: 0 0 10px rgba(34, 211, 238, 0.5);
 }
 
 .name-input {
@@ -1546,8 +1546,8 @@
   font-size: 28px;
   padding: 16px 24px;
   background: rgba(0, 0, 0, 0.8);
-  border: 2px solid rgba(0, 255, 65, 0.5);
-  color: #00FF41;
+  border: 2px solid rgba(34, 211, 238, 0.5);
+  color: #22d3ee;
   border-radius: 8px;
   outline: none;
   transition: all 0.3s ease;
@@ -1557,13 +1557,13 @@
 }
 
 .name-input:focus {
-  border-color: #00FF41;
-  box-shadow: 0 0 25px rgba(0, 255, 65, 0.4);
+  border-color: #22d3ee;
+  box-shadow: 0 0 25px rgba(34, 211, 238, 0.4);
   background: rgba(0, 0, 0, 0.9);
 }
 
 .name-input::placeholder {
-  color: rgba(0, 255, 65, 0.3);
+  color: rgba(34, 211, 238, 0.3);
   letter-spacing: 1px;
 }
 
@@ -1571,13 +1571,13 @@
 .name-input-section .confirm-btn {
   font-size: 26px;
   padding: 18px 50px;
-  box-shadow: 0 0 25px rgba(0, 255, 65, 0.4);
+  box-shadow: 0 0 25px rgba(34, 211, 238, 0.4);
   transition: all 0.3s ease;
 }
 
 .name-input-section .confirm-btn:hover:not(:disabled) {
-  background: rgba(0, 255, 65, 0.15);
-  box-shadow: 0 0 40px rgba(0, 255, 65, 0.6);
+  background: rgba(34, 211, 238, 0.15);
+  box-shadow: 0 0 40px rgba(34, 211, 238, 0.6);
   transform: translateY(-3px);
 }
 
@@ -1606,11 +1606,11 @@
 .generating-text {
   font-family: 'VT323', monospace;
   font-size: 30px;
-  color: #00FF41;
+  color: #22d3ee;
   margin-top: 30px;
   text-align: center;
   padding: 0 40px;
-  text-shadow: 0 0 15px rgba(0, 255, 65, 0.6);
+  text-shadow: 0 0 15px rgba(34, 211, 238, 0.6);
   animation: pulse 1.5s ease-in-out infinite;
 }
 
@@ -1671,4 +1671,114 @@
   .generating-text {
     font-size: 24px;
   }
+}
+
+/* ========================================
+   PIKA 特色效果 - 网格叠加、噪点纹理、镜面反光
+   ======================================== */
+
+/* 网格叠加层 - 赛博朋克风格的网格背景 */
+.grid-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image:
+    linear-gradient(to right, rgba(34, 211, 238, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(34, 211, 238, 0.05) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.3;
+}
+
+/* 噪点纹理 - 增加画面质感 */
+.noise-texture {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url('data:image/svg+xml;utf8,<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><filter id="noiseFilter"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23noiseFilter)"/></svg>');
+  background-size: 100px 100px;
+  opacity: 0.05;
+  pointer-events: none;
+  z-index: 50;
+  mix-blend-mode: overlay;
+}
+
+/* 镜面反光效果 - 用于 Mirror 界面 */
+.mirror-surface {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.1) 0%,
+    rgba(255, 255, 255, 0) 30%,
+    rgba(255, 255, 255, 0) 70%,
+    rgba(255, 255, 255, 0.1) 100%
+  );
+  pointer-events: none;
+  z-index: 40;
+  opacity: 0.3;
+}
+
+/* 光泽动画层 - 配合 Framer Motion 使用 */
+.shine-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+  transform: skewX(-12deg);
+  pointer-events: none;
+  mix-blend-mode: overlay;
+  z-index: 45;
+}
+
+/* Mirror 容器 - 3D 效果基础样式 */
+.mirror-container {
+  perspective: 1000px;
+  transform-style: preserve-3d;
+}
+
+/* 银色表面效果 */
+.silver-surface {
+  background: linear-gradient(
+    135deg,
+    #cbd5e1 0%,
+    #e2e8f0 50%,
+    #cbd5e1 100%
+  );
+  border: 4px solid #94a3b8;
+  box-shadow:
+    0 30px 60px -10px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+/* 青色辉光效果 - 用于按钮和边框 */
+.cyan-glow {
+  box-shadow: 0 0 20px rgba(34, 211, 238, 0.3);
+  transition: box-shadow 0.3s ease;
+}
+
+.cyan-glow:hover {
+  box-shadow: 0 0 30px rgba(34, 211, 238, 0.6);
+}
+
+/* 深蓝黑渐变背景 - 可复用 */
+.deep-blue-bg {
+  background: radial-gradient(
+    ellipse at center,
+    #1e293b 0%,
+    #0f172a 50%,
+    #020617 100%
+  );
 }
