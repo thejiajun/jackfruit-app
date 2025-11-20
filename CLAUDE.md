@@ -17,7 +17,10 @@ Social media app for AI-powered photo transformations:
 
 ### 2. Character App (`/character-app`)
 AI virtual character interaction system:
-- **Onboarding System**: Modular 7-step user identity creation flow (configurable via database)
+- **Onboarding System**: Supports both 7-step and new 4-stage AI-native flows (database-driven)
+  - **4-Stage Architecture**: System Boot → Mirror Guide → Forging → Living Avatar
+  - Integrates Gemini Vision API, Gemini Live API, and video generation
+  - Camera/microphone access, real-time photo analysis, voice conversation
 - View AI characters with dynamic moods/health/statuses
 - Video-based character display with smooth clip transitions
 - Real-time status changes based on mood selection
@@ -37,6 +40,20 @@ Management interface for Character Status system:
 - Built with React + Ant Design
 
 ## Quick Commands
+
+### Monorepo Commands (Root Level)
+```bash
+# Install all dependencies (root + workspaces)
+npm install
+
+# Run specific app from root
+npm run dev:character     # Start Character App dev server
+npm run dev:admin         # Start Admin Panel dev server
+
+# Build specific app
+npm run build:character
+npm run build:admin
+```
 
 ### LookGen (Root App)
 ```bash
@@ -66,10 +83,26 @@ npm run build
 
 ### Supabase (Shared Backend)
 ```bash
+# Local Development
 supabase start                          # Start local Supabase (postgres, studio, edge functions)
+supabase stop                           # Stop local Supabase
+supabase status                         # Check status and get service URLs
+
+# Database Migrations
 supabase db push                        # Push migrations to remote
+supabase db reset                       # Reset local database (WARNING: destroys data)
+supabase migration list                 # List all migrations
+supabase migration new <name>           # Create new migration file
+
+# Edge Functions
 supabase functions deploy <name>        # Deploy specific edge function
+supabase functions deploy               # Deploy all functions
 supabase functions list                 # List all edge functions
+supabase functions logs <name> --tail   # Tail function logs in real-time
+supabase functions serve <name>         # Serve function locally for testing
+
+# Utility Scripts
+node scripts/query-looks.js             # Query prompt_items table (debugging templates)
 
 # Edge functions:
 # - transform-image: Single image transformation (LookGen)
@@ -78,6 +111,8 @@ supabase functions list                 # List all edge functions
 # - generate-starting-image: FAL SeeDrawm image generation (Character system)
 # - generate-single-video: FAL SeeDance video generation (Character system)
 # - batch-image-generation: Batch image processing (Character system)
+# - voice-chat: Voice chat functionality (Character system)
+# - generate-tts-audio: Text-to-speech audio generation (Character system)
 ```
 
 ## Architecture Overview
@@ -148,15 +183,20 @@ import { View, Text, TouchableOpacity } from 'react-native'
 character-app/ (AI Character Viewer)
 ├── src/
 │   ├── pages/
-│   │   ├── Onboarding/          # Modular 7-step onboarding system
+│   │   ├── Onboarding/          # Dual-architecture onboarding system
 │   │   │   ├── OnboardingEngine.jsx  # State machine & step router
-│   │   │   ├── Step1Splash.jsx       # Splash screen
-│   │   │   ├── Step2Guidance.jsx     # Assistant introduction
-│   │   │   ├── Step3Identity.jsx     # Identity input (name/photo/voice)
-│   │   │   ├── Step4Choice.jsx       # Core choice (keep self vs become other)
-│   │   │   ├── Step5Creation.jsx     # AI identity creation
-│   │   │   ├── Step6Finalizing.jsx   # Confirmation & loading
-│   │   │   └── Step7Entry.jsx        # Entry to main app
+│   │   │   ├── stages/               # NEW: 4-Stage AI-Native flow
+│   │   │   │   ├── Stage1Boot.jsx    # System boot + permissions
+│   │   │   │   ├── Stage2Mirror.jsx  # Camera + Gemini Vision/Live + templates
+│   │   │   │   ├── Stage3Forging.jsx # Photo upload + script generation
+│   │   │   │   └── Stage4Avatar.jsx  # Video reveal + naming + lip-sync
+│   │   │   ├── Step1Splash.jsx       # LEGACY: 7-step flow components
+│   │   │   ├── Step2Guidance.jsx
+│   │   │   ├── Step3Identity.jsx
+│   │   │   ├── Step4Choice.jsx
+│   │   │   ├── Step5Creation.jsx
+│   │   │   ├── Step6Finalizing.jsx
+│   │   │   └── Step7Entry.jsx
 │   │   ├── CharacterList.jsx    # Character selection screen
 │   │   └── CharacterView.jsx    # Main character interaction view
 │   ├── components/character/
@@ -172,7 +212,16 @@ character-app/ (AI Character Viewer)
 │   └── services/
 │       ├── supabaseClient.js
 │       ├── characterService.js       # Character CRUD operations
-│       └── onboardingService.js      # Onboarding config & session management
+│       ├── onboardingService.js      # Onboarding config & session management
+│       ├── geminiService.js          # Gemini Vision & Live API integration
+│       ├── templateService.js        # Template loading from Supabase
+│       ├── videoGenerationService.js # Video generation workflow
+│       ├── envService.js             # Environment variable management
+│       ├── ttsService.js             # Text-to-speech integration
+│       ├── elevenlabsService.js      # ElevenLabs TTS API
+│       ├── voiceService.js           # Voice chat functionality
+│       ├── audioService.js           # Audio playback
+│       └── audioCacheService.js      # IndexedDB audio caching
 │
 admin-app/ (Character Admin Panel)
 ├── src/
@@ -197,6 +246,7 @@ supabase/ (Shared backend)
 │   ├── 20251112_character_status_system.sql
 │   ├── 20251118000000_create_onboarding_system.sql         # Onboarding tables & RLS
 │   ├── 20251118120000_refactor_onboarding_architecture.sql # Onboarding optimization
+│   ├── 20251119000000_add_4stage_support.sql               # NEW: 4-Stage architecture
 │   └── (storage bucket configs)
 └── functions/
     ├── transform-image/           # LookGen: FAL image transformation
@@ -204,7 +254,12 @@ supabase/ (Shared backend)
     ├── generate-text-content/     # Character: Gemini prompt generation
     ├── generate-starting-image/   # Character: FAL SeeDrawm image gen
     ├── generate-single-video/     # Character: FAL SeeDance video gen
-    └── batch-image-generation/    # Character: Batch processing
+    ├── batch-image-generation/    # Character: Batch processing
+    ├── voice-chat/                # Character: Voice chat
+    └── generate-tts-audio/        # Character: Text-to-speech
+
+scripts/ (Utility scripts)
+└── query-looks.js                 # Query prompt_items table for 'looks' category
 ```
 
 ## Data Flow
@@ -274,6 +329,53 @@ Final step → redirect to /character/{target_character_id}
 - **Philosophy**: Step 1 (epic splash) → Step 7
 - **Tech**: Step 1 → Step 2 (assistant) → Step 3 (identity scan) → Step 4 (choice) → Step 7
 - **Cyberpunk**: Step 1 → Step 4 → Step 5 (AI creation) → Step 6 (loading) → Step 7
+
+### NEW: 4-Stage AI-Native Onboarding Flow
+```
+User visits Character App root (/) → onboardingService.getActiveConfig()
+  ↓
+Stage 1 (System Boot):
+  Glitch art animation + Entity orb visual
+  → "BOOTING SYSTEM..." text sequence
+  → "🔘 INITIATE TALKING" button (triggers camera/mic permission request)
+  ↓
+Stage 2 (Mirror Guide):
+  Camera activation (full-screen) → User captures photo
+  → Gemini Vision API analyzes photo (location, clothing, mood)
+  → Gemini Live API: 2-round voice conversation
+  → AI recommends templates based on analysis
+  → User selects template from carousel
+  ↓
+Stage 3 (Forging):
+  "Feed me Memory Shards" prompt → User uploads 1-5 photos
+  → Gemini Vision analyzes personality from photos
+  → Script generation (Gemini) for character introduction
+  → Trigger video generation (FAL SeeDance)
+  → Progress animation ("CONSTRUCTING VESSEL 45%...")
+  → Wait for video generation completion
+  ↓
+Stage 4 (Living Avatar):
+  Reveal video plays (character opens eyes, "comes alive")
+  → Lip-sync video with generated script (character introduces itself)
+  → User enters character name
+  → "ENTER WORLD" button → Transition video (wormhole effect)
+  → Redirect to /character/{character_id}
+```
+
+**Field Mapping** (backward compatible with existing DB schema):
+- Stage 1 (Boot) → Uses `step_1_splash` column
+- Stage 2 (Mirror) → Uses `step_3_identity_input` column
+- Stage 3 (Forging) → Uses `step_5_creation` column
+- Stage 4 (Avatar) → Uses `step_7_entry` column
+
+**Key Technologies**:
+- **Gemini Vision API**: Photo analysis (environment, clothing, mood detection)
+- **Gemini Live API**: Real-time voice conversation (2 rounds max)
+- **FAL SeeDance**: Video generation from starting image + prompts
+- **ElevenLabs**: Text-to-speech for character voice
+- **IndexedDB**: Audio caching via `audioCacheService.js`
+
+See `character-app/New design.md` for detailed UX specs and wireframes.
 
 ## State Management
 
@@ -503,14 +605,116 @@ export default function useStepNavigation(config) {
 }
 ```
 
+### Character App: 4-Stage Onboarding Implementation
+
+**Stage 2 (Mirror Guide) - Gemini Integration Pattern:**
+```javascript
+// Stage2Mirror.jsx
+import { analyzePhotoWithVision } from '../../../services/geminiService'
+import { loadLookingTemplates } from '../../../services/templateService'
+
+const Stage2Mirror = ({ config, onComplete }) => {
+  const [phase, setPhase] = useState('camera')
+  // Phases: camera | captured | analyzing | conversation | templates
+
+  // 1. Camera capture
+  const capturePhoto = () => {
+    const canvas = canvasRef.current
+    const video = videoRef.current
+    canvas.getContext('2d').drawImage(video, 0, 0)
+    const dataUrl = canvas.toDataURL('image/jpeg')
+    setPhotoDataUrl(dataUrl)
+    setPhase('analyzing')
+    analyzePhoto(dataUrl)
+  }
+
+  // 2. Gemini Vision analysis
+  const analyzePhoto = async (photoDataUrl) => {
+    const result = await analyzePhotoWithVision(photoDataUrl)
+    // Result: { location, clothing, mood, recommendation }
+    setAnalysisResult(result)
+    setPhase('conversation') // → Transition to Gemini Live
+  }
+
+  // 3. Gemini Live voice conversation (2 rounds)
+  // TODO: Implement Gemini Live API integration
+
+  // 4. Template selection
+  const loadTemplates = async () => {
+    const templates = await loadLookingTemplates()
+    setTemplates(templates)
+    setPhase('templates')
+  }
+
+  return (/* UI with phase-based rendering */)
+}
+```
+
+**Stage 3 (Forging) - Video Generation Workflow:**
+```javascript
+// Stage3Forging.jsx
+import { triggerVideoGeneration } from '../../../services/videoGenerationService'
+
+const Stage3Forging = ({ config, onComplete, userData }) => {
+  const [uploadedPhotos, setUploadedPhotos] = useState([])
+  const [generationStatus, setGenerationStatus] = useState('idle')
+  // Status: idle | analyzing | crafting | forging | complete
+
+  const handlePhotoUpload = async (files) => {
+    // Upload to Supabase storage
+    const urls = await uploadPhotosToStorage(files)
+    setUploadedPhotos([...uploadedPhotos, ...urls])
+
+    // Trigger Gemini Vision personality analysis
+    if (uploadedPhotos.length >= 3) {
+      analyzePersonality(uploadedPhotos)
+    }
+  }
+
+  const analyzePersonality = async (photoUrls) => {
+    setGenerationStatus('analyzing')
+    // Gemini Vision analyzes multiple photos
+    const personality = await geminiAnalyzePhotos(photoUrls)
+
+    setGenerationStatus('crafting')
+    // Generate script for character introduction
+    const script = await geminiGenerateScript(personality, userData)
+
+    setGenerationStatus('forging')
+    // Trigger video generation (FAL SeeDance)
+    const videoUrl = await triggerVideoGeneration(script, userData.template)
+
+    setGenerationStatus('complete')
+    onComplete({ videoUrl, script, personality })
+  }
+
+  return (/* UI with progress animation */)
+}
+```
+
+**Utility Scripts:**
+```bash
+# Query template data from Supabase
+node scripts/query-looks.js
+
+# Output: Lists all prompt_items with category='looks' or 'looking'
+# Useful for debugging template loading in Stage 2
+```
+
 ## Environment Variables
 
 All apps share the same `.env` structure:
 ```env
-VITE_FAL_API_KEY=your_fal_api_key           # FAL image/video generation
+# FAL API (image/video generation)
+VITE_FAL_API_KEY=your_fal_api_key
+
+# Supabase
 VITE_SUPABASE_URL=your_supabase_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-VITE_GEMINI_API_KEY=your_gemini_api_key     # Google Gemini for text generation (Character system)
+VITE_SUPABASE_SERVICE_ROLE_KEY=your_service_role_key  # For admin operations
+
+# Google Gemini (text generation, vision, live voice)
+VITE_GEMINI_API_KEY=your_gemini_api_key
 ```
 
 **Supabase Edge Functions** also need environment variables:
@@ -567,9 +771,12 @@ supabase functions logs generate-single-video --tail
 
 ### Console Logging Prefixes
 - **LookGen:** `[appStore]`, `[supabaseApi]`, `[falApi]`
-- **Character App:** `[CharacterView]`, `[VideoPlayer]`, `[characterService]`, `[OnboardingEngine]`, `[onboardingService]`
+- **Character App:**
+  - Core: `[CharacterView]`, `[VideoPlayer]`, `[characterService]`
+  - Onboarding: `[OnboardingEngine]`, `[onboardingService]`, `[Stage1Boot]`, `[Stage2Mirror]`, `[Stage3Forging]`, `[Stage4Avatar]`
+  - Services: `[geminiService]`, `[templateService]`, `[videoGenerationService]`, `[ttsService]`, `[voiceService]`, `[audioCacheService]`
 - **Admin Panel:** `[generationService]`, `[statusManagement]`, `[OnboardingConfigManagement]`
-- **Edge Functions:** Check Supabase dashboard logs
+- **Edge Functions:** Check Supabase dashboard logs (`supabase functions logs <name> --tail`)
 
 ### Common Issues
 
@@ -607,6 +814,38 @@ supabase functions logs generate-single-video --tail
 - Check if visual resources (videos/images) are loading correctly
 - Review browser console for JavaScript errors in step components
 
+**4-Stage Onboarding specific issues:**
+
+**Stage 2 (Mirror) - Camera not working:**
+- Ensure HTTPS or localhost (camera requires secure context)
+- Check browser permissions for camera access
+- Verify `getUserMedia` is supported in browser
+- Check console for `[Stage2Mirror]` errors
+
+**Stage 2 - Gemini Vision analysis failing:**
+- Verify `VITE_GEMINI_API_KEY` is set in `.env`
+- Check Gemini API quota/billing at ai.google.dev
+- Ensure photo is properly converted to base64 data URL
+- Check `[geminiService]` console logs for API errors
+
+**Stage 2 - Templates not loading:**
+- Run `node scripts/query-looks.js` to verify data exists in Supabase
+- Check that `prompt_items` table has rows with `category='looks'` or `category='looking'`
+- Verify `enabled=true` and `deleted_at IS NULL` for template items
+- Check `[templateService]` console logs
+
+**Stage 3 (Forging) - Video generation stuck:**
+- Check generation status in browser DevTools console
+- Verify FAL API key is valid
+- Video generation can take 30-60 seconds - ensure UI shows progress
+- Check `[videoGenerationService]` logs for FAL API errors
+
+**Stage 4 (Avatar) - Lip-sync video not playing:**
+- Verify video URL is accessible (try opening in browser)
+- Check Supabase storage bucket permissions
+- Ensure video format is supported (MP4 recommended)
+- Check browser console for video loading errors
+
 ## Key Architecture Decisions
 
 ### Why Monorepo?
@@ -638,3 +877,18 @@ supabase functions logs generate-single-video --tail
 - **No hardcoded flows**: Step routing determined by config presence, not code conditionals
 - **Session tracking**: `onboarding_sessions` allows resuming incomplete flows
 - Inspired by "Second Life", "Pikabot", "Naomi" reference flows (see character-app/Onboarding SPEC.md)
+
+### 4-Stage AI-Native Onboarding Architecture
+- **Dual architecture support**: Codebase supports both 7-step (legacy) and 4-stage (new) flows
+- **Backward compatible**: 4-stage uses existing DB columns (`step_1_splash`, `step_3_identity_input`, etc.)
+- **AI-first experience**: Heavy integration with Gemini Vision, Gemini Live, FAL video generation
+- **Permission flow**: Stage 1 (Boot) handles camera/mic permissions before interactive stages
+- **Latency management**: Stage 3 (Forging) includes progress animations to manage 30-60s video generation wait
+- **State-driven UI**: Each stage uses phase-based state machines (e.g., camera → analyzing → conversation → templates)
+- **IndexedDB caching**: Audio files cached locally via `audioCacheService.js` to reduce API calls
+- **Design philosophy**: "The app is alive" - focus on immersion, not traditional form-filling
+  - Boot sequence with glitch art establishes "system" metaphor
+  - Mirror stage feels like AI is "seeing" and "talking" to user
+  - Forging stage: "Feeding Memory Shards" instead of "Upload Photos"
+  - Avatar stage: Character "comes alive" with reveal + lip-sync videos
+- See `character-app/New design.md` for detailed UX rationale and wireframes

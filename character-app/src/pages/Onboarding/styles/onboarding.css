@@ -53,9 +53,10 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start; /* 从顶部开始，确保启动文案始终可见 */
   padding: 40px 20px;
   box-sizing: border-box;
+  overflow-y: auto; /* 允许滚动以查看所有内容 */
 }
 
 /* ========================================
@@ -318,6 +319,8 @@
 /* ========================================
    故障艺术效果 (Glitch Effect)
    ======================================== */
+
+/* 基础故障效果 */
 .glitch-active {
   animation: glitch-anim 2s infinite linear alternate-reverse;
   filter: hue-rotate(90deg) invert(1);
@@ -350,9 +353,500 @@
   }
 }
 
+/* Stage 1 专用故障容器 */
+.stage1-boot .glitch-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+  background: #000;
+}
+
+/* CRT 扫描线效果（增强版） */
+.crt-scanlines {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.15),
+    rgba(0, 0, 0, 0.15) 1px,
+    transparent 1px,
+    transparent 2px
+  );
+  pointer-events: none;
+  z-index: 50;
+}
+
+/* CRT 屏幕曲面效果 */
+.crt-curve {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 0%,
+    transparent 80%,
+    rgba(0, 0, 0, 0.4) 100%
+  );
+  pointer-events: none;
+  z-index: 51;
+}
+
+/* RGB 色彩分离效果 */
+.rgb-split {
+  position: relative;
+}
+
+.rgb-split::before,
+.rgb-split::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  mix-blend-mode: screen;
+  animation: rgb-glitch 3s infinite;
+}
+
+.rgb-split::before {
+  color: #ff0000;
+  animation: rgb-glitch-red 3s infinite;
+}
+
+.rgb-split::after {
+  color: #00ffff;
+  animation: rgb-glitch-cyan 3s infinite;
+}
+
+@keyframes rgb-glitch-red {
+  0%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(-2px, 0); }
+  50% { transform: translate(2px, 0); }
+  75% { transform: translate(-1px, 0); }
+}
+
+@keyframes rgb-glitch-cyan {
+  0%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(2px, 0); }
+  50% { transform: translate(-2px, 0); }
+  75% { transform: translate(1px, 0); }
+}
+
+/* 电视静噪效果 */
+.tv-static {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="4" /></filter><rect width="100%" height="100%" filter="url(%23noise)" opacity="0.05" /></svg>');
+  background-size: 100px 100px;
+  opacity: 0.05;
+  pointer-events: none;
+  z-index: 52;
+  animation: static-noise 0.2s infinite;
+}
+
+@keyframes static-noise {
+  0% { transform: translate(0, 0); }
+  10% { transform: translate(-5%, -5%); }
+  20% { transform: translate(-10%, 5%); }
+  30% { transform: translate(5%, -10%); }
+  40% { transform: translate(-5%, 15%); }
+  50% { transform: translate(-10%, 5%); }
+  60% { transform: translate(15%, 0); }
+  70% { transform: translate(0, 10%); }
+  80% { transform: translate(-15%, 0); }
+  90% { transform: translate(10%, 5%); }
+  100% { transform: translate(5%, 0); }
+}
+
+/* 故障闪烁效果 */
+.glitch-flicker {
+  animation: flicker 0.15s infinite;
+}
+
+@keyframes flicker {
+  0%, 100% { opacity: 1; }
+  40% { opacity: 0.8; }
+  45% { opacity: 0.95; }
+  50% { opacity: 0.85; }
+  55% { opacity: 1; }
+}
+
+/* 启动序列文本样式（包含启动日志和问候语） */
+.boot-sequence {
+  font-family: 'VT323', monospace;
+  font-size: 18px;
+  color: #00FF41;
+  text-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+  margin-bottom: 40px;
+  text-align: left;
+  max-width: 800px;
+  width: 100%;
+}
+
+.terminal-text {
+  margin: 8px 0;
+  opacity: 0;
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+.terminal-text.fade-in {
+  animation-delay: 0.3s;
+}
+
+/* Entity 可视化区域（NovaOrb） */
+.entity-visual {
+  position: fixed;
+  top: 53%; /* 调整位置，再往下一些（从 48% 改为 53%） */
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 300px;
+  height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2; /* 在背景层之上，内容层(z-index: 10)之下 */
+  pointer-events: none; /* 不拦截鼠标事件，让按钮可点击 */
+}
+
+/* 问候语（在 boot-sequence 内） */
+.entity-greeting {
+  font-family: 'VT323', monospace;
+  font-size: 28px;
+  color: #00FF41;
+  text-shadow: 0 0 20px rgba(0, 255, 65, 0.6);
+  margin: 20px 0 10px 0;
+  letter-spacing: 2px;
+  font-weight: normal;
+}
+
+/* 副标题（在 boot-sequence 内） */
+.entity-subtext {
+  font-family: 'VT323', monospace;
+  font-size: 28px;
+  color: #00FF41;
+  opacity: 0.7;
+  margin: 5px 0 10px 0;
+}
+
+/* 打字机效果文本 */
+.typewriter-text {
+  display: inline-block;
+  white-space: nowrap;
+  overflow: visible;
+}
+
+/* 光标闪烁动画 */
+.cursor-blink {
+  display: inline-block;
+  margin-left: 2px;
+  animation: cursor-blink-anim 0.8s step-end infinite;
+  color: #00FF41;
+}
+
+@keyframes cursor-blink-anim {
+  0%, 49% {
+    opacity: 1;
+  }
+  50%, 100% {
+    opacity: 0;
+  }
+}
+
+/* 故障边框按钮 */
+.glitch-border {
+  position: relative;
+  border: 2px solid #00FF41;
+  box-shadow: 0 0 20px rgba(0, 255, 65, 0.3);
+}
+
+.glitch-border:hover {
+  animation: border-glitch 0.3s ease;
+}
+
+@keyframes border-glitch {
+  0%, 100% { box-shadow: 0 0 20px rgba(0, 255, 65, 0.3); }
+  25% { box-shadow: -2px 0 20px rgba(255, 0, 0, 0.5), 2px 0 20px rgba(0, 255, 255, 0.5); }
+  50% { box-shadow: 2px 0 20px rgba(255, 0, 0, 0.5), -2px 0 20px rgba(0, 255, 255, 0.5); }
+  75% { box-shadow: -1px 0 20px rgba(255, 0, 0, 0.5), 1px 0 20px rgba(0, 255, 255, 0.5); }
+}
+
 /* ========================================
-   摄像头取景框 (Camera Viewfinder)
+   Stage 2: Mirror Guide - 摄像头相关样式
    ======================================== */
+
+/* 摄像头视频全屏显示 */
+.camera-video {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+}
+
+/* 拍摄完成后的照片预览 */
+.captured-photo {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+}
+
+/* 顶部状态栏 */
+.top-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 60px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 20px;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.6), transparent);
+  z-index: 20;
+}
+
+.back-btn,
+.rec-indicator {
+  font-family: 'VT323', monospace;
+  font-size: 18px;
+  color: #00FF41;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(0, 255, 65, 0.3);
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.back-btn:hover {
+  background: rgba(0, 255, 65, 0.1);
+  box-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+}
+
+.rec-indicator {
+  cursor: default;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* 摄像头控制按钮 */
+.camera-controls {
+  position: absolute;
+  bottom: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+}
+
+.capture-btn {
+  font-family: 'VT323', monospace;
+  font-size: 24px;
+  padding: 20px 60px;
+  background: rgba(0, 0, 0, 0.7);
+  border: 2px solid #00FF41;
+  color: #00FF41;
+  cursor: pointer;
+  border-radius: 8px;
+  box-shadow: 0 0 20px rgba(0, 255, 65, 0.3);
+  transition: all 0.3s ease;
+}
+
+.capture-btn:hover {
+  background: rgba(0, 255, 65, 0.1);
+  box-shadow: 0 0 30px rgba(0, 255, 65, 0.6);
+  transform: scale(1.05);
+}
+
+.capture-btn:active {
+  transform: scale(0.95);
+}
+
+/* 照片预览控制按钮 */
+.photo-preview-controls {
+  position: absolute;
+  bottom: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 20px;
+  z-index: 20;
+}
+
+.confirm-btn,
+.retake-btn {
+  font-family: 'VT323', monospace;
+  font-size: 22px;
+  padding: 16px 40px;
+  background: rgba(0, 0, 0, 0.7);
+  border: 2px solid;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  letter-spacing: 1px;
+}
+
+.confirm-btn {
+  border-color: #00FF41;
+  color: #00FF41;
+  box-shadow: 0 0 20px rgba(0, 255, 65, 0.3);
+}
+
+.confirm-btn:hover {
+  background: rgba(0, 255, 65, 0.1);
+  box-shadow: 0 0 30px rgba(0, 255, 65, 0.6);
+}
+
+.retake-btn {
+  border-color: #FF4141;
+  color: #FF4141;
+  box-shadow: 0 0 20px rgba(255, 65, 65, 0.3);
+}
+
+.retake-btn:hover {
+  background: rgba(255, 65, 65, 0.1);
+  box-shadow: 0 0 30px rgba(255, 65, 65, 0.6);
+}
+
+/* 分析中动画 */
+.analyzing-section {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  z-index: 25;
+}
+
+.loading-spinner {
+  width: 60px;
+  height: 60px;
+  margin: 0 auto 20px;
+  border: 4px solid rgba(0, 255, 65, 0.2);
+  border-top-color: #00FF41;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.analyzing-text {
+  font-family: 'VT323', monospace;
+  font-size: 24px;
+  color: #00FF41;
+  text-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+}
+
+/* 对话区域 */
+.conversation-section {
+  position: absolute;
+  bottom: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90%;
+  max-width: 600px;
+  text-align: center;
+  z-index: 25;
+}
+
+.ai-speech {
+  font-family: 'VT323', monospace;
+  font-size: 22px;
+  color: #00FF41;
+  background: rgba(0, 0, 0, 0.7);
+  padding: 16px 24px;
+  margin: 12px 0;
+  border: 1px solid rgba(0, 255, 65, 0.3);
+  border-radius: 8px;
+  text-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+  animation: fadeIn 0.8s ease-out;
+}
+
+.skip-conversation-btn {
+  margin-top: 24px;
+  font-family: 'VT323', monospace;
+  font-size: 18px;
+  padding: 12px 32px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+}
+
+.skip-conversation-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #FFFFFF;
+  border-color: #FFFFFF;
+}
+
+/* 模板选择区域 */
+.template-selection {
+  position: absolute;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90%;
+  max-width: 700px;
+  z-index: 25;
+}
+
+.template-prompt {
+  font-family: 'VT323', monospace;
+  font-size: 24px;
+  color: #00FF41;
+  text-align: center;
+  margin-bottom: 24px;
+  text-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+}
+
+.template-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+.template-card {
+  background: rgba(0, 0, 0, 0.7);
+  border: 2px solid rgba(0, 255, 65, 0.3);
+  padding: 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: 'VT323', monospace;
+  font-size: 18px;
+  color: #00FF41;
+  text-transform: uppercase;
+}
+
+.template-card:hover {
+  background: rgba(0, 255, 65, 0.1);
+  border-color: #00FF41;
+  box-shadow: 0 0 20px rgba(0, 255, 65, 0.5);
+  transform: scale(1.05);
+}
+
+.template-card:active {
+  transform: scale(0.98);
+}
+
+/* 摄像头取景框 (Camera Viewfinder) */
 .camera-viewfinder {
   position: absolute;
   top: 10%;
@@ -395,6 +889,221 @@
   bottom: -2px;
   right: -2px;
   border-width: 0 4px 4px 0;
+}
+
+/* ========================================
+   Stage 3: Forging - 照片上传和生成样式
+   ======================================== */
+
+/* 状态栏 */
+.status-bar {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90%;
+  max-width: 600px;
+  z-index: 20;
+}
+
+.status-text {
+  font-family: 'VT323', monospace;
+  font-size: 20px;
+  color: #00FF41;
+  text-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+  margin-bottom: 8px;
+  display: block;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 6px;
+  background: rgba(0, 255, 65, 0.2);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #00FF41, #00FFAA);
+  transition: width 0.5s ease;
+  box-shadow: 0 0 10px rgba(0, 255, 65, 0.6);
+}
+
+/* 上传区域 */
+.upload-section {
+  position: relative;
+  z-index: 15;
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.entity-speech {
+  font-family: 'VT323', monospace;
+  font-size: 22px;
+  color: #00FF41;
+  margin-bottom: 40px;
+  line-height: 1.6;
+}
+
+.entity-speech p {
+  margin: 12px 0;
+  text-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+  animation: fadeIn 0.8s ease-out;
+}
+
+.upload-slots {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 16px;
+  max-width: 700px;
+  margin: 0 auto 32px;
+}
+
+.upload-slot {
+  aspect-ratio: 1;
+  border: 2px dashed rgba(0, 255, 65, 0.3);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.upload-slot:hover {
+  border-color: #00FF41;
+  background: rgba(0, 255, 65, 0.05);
+  box-shadow: 0 0 15px rgba(0, 255, 65, 0.3);
+}
+
+.upload-slot.filled {
+  border-style: solid;
+  border-color: #00FF41;
+  cursor: default;
+}
+
+.upload-slot img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.upload-prompt {
+  font-family: 'VT323', monospace;
+  font-size: 16px;
+  color: #00FF41;
+  opacity: 0.7;
+}
+
+.absorb-animation {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle, rgba(0, 255, 65, 0.4), transparent);
+  animation: absorb 1.5s ease-out;
+  pointer-events: none;
+}
+
+@keyframes absorb {
+  0% {
+    opacity: 0;
+    transform: scale(1.5);
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+}
+
+.done-btn {
+  font-family: 'VT323', monospace;
+  font-size: 22px;
+  padding: 16px 48px;
+  background: rgba(0, 0, 0, 0.7);
+  border: 2px solid #00FF41;
+  color: #00FF41;
+  cursor: pointer;
+  border-radius: 8px;
+  box-shadow: 0 0 20px rgba(0, 255, 65, 0.3);
+  transition: all 0.3s ease;
+  letter-spacing: 2px;
+}
+
+.done-btn:hover:not(:disabled) {
+  background: rgba(0, 255, 65, 0.1);
+  box-shadow: 0 0 30px rgba(0, 255, 65, 0.6);
+  transform: scale(1.05);
+}
+
+.done-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* 生成区域 */
+.generating-section {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  z-index: 20;
+}
+
+.generation-message {
+  font-family: 'VT323', monospace;
+  font-size: 22px;
+  color: #00FF41;
+  text-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+  margin-top: 24px;
+}
+
+/* 完成按钮 */
+.reveal-btn {
+  position: absolute;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'VT323', monospace;
+  font-size: 28px;
+  padding: 20px 60px;
+  background: rgba(0, 0, 0, 0.8);
+  border: 3px solid #00FF41;
+  color: #00FF41;
+  cursor: pointer;
+  border-radius: 12px;
+  box-shadow: 0 0 30px rgba(0, 255, 65, 0.5);
+  transition: all 0.3s ease;
+  letter-spacing: 3px;
+  z-index: 20;
+}
+
+.reveal-btn:hover {
+  background: rgba(0, 255, 65, 0.1);
+  box-shadow: 0 0 40px rgba(0, 255, 65, 0.8);
+  transform: translateX(-50%) scale(1.1);
+}
+
+.reveal-btn.eye-animation {
+  animation: eye-pulse 2s ease-in-out infinite;
+}
+
+@keyframes eye-pulse {
+  0%, 100% {
+    box-shadow: 0 0 30px rgba(0, 255, 65, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 50px rgba(0, 255, 65, 0.8);
+  }
 }
 
 /* ========================================
@@ -640,4 +1349,326 @@
   background: rgba(0, 255, 65, 0.1) !important;
   box-shadow: 0 0 15px rgba(0, 255, 65, 0.5);
   transform: scale(1.05);
+}
+
+/* ========================================
+   Stage 4: Living Avatar - 角色诞生样式
+   ======================================== */
+
+/* Stage 4 整体容器 */
+.stage4-avatar {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Loading 阶段 - 等待 Revealing 视频 */
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at center, rgba(0, 0, 0, 0.9) 0%, #000000 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  animation: fadeIn 0.5s ease;
+}
+
+.loading-text {
+  font-family: 'VT323', monospace;
+  font-size: 28px;
+  color: #00FF41;
+  margin-top: 30px;
+  text-align: center;
+  padding: 0 40px;
+  text-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.loading-bar {
+  width: 60%;
+  max-width: 400px;
+  height: 4px;
+  background: rgba(0, 255, 65, 0.2);
+  margin-top: 40px;
+  border-radius: 2px;
+  position: relative;
+  overflow: hidden;
+}
+
+.loading-bar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, #00FF41, transparent);
+  animation: loading-slide 1.5s ease-in-out infinite;
+}
+
+@keyframes loading-slide {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 200%;
+  }
+}
+
+/* 全屏视频 (Revealing, Lip-Sync, Transition) */
+.fullscreen-video {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 5;
+  animation: fadeIn 0.8s ease;
+}
+
+/* 命名阶段 */
+.naming-section {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.95) 0%, rgba(0, 20, 10, 0.95) 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  z-index: 10;
+  animation: fadeIn 0.8s ease;
+}
+
+/* Character Card */
+.character-card {
+  background: rgba(0, 0, 0, 0.7);
+  border: 2px solid #00FF41;
+  border-radius: 12px;
+  padding: 32px 40px;
+  max-width: 600px;
+  width: 90%;
+  margin-bottom: 60px;
+  box-shadow: 0 0 40px rgba(0, 255, 65, 0.3);
+  position: relative;
+}
+
+.character-card::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(45deg, #00FF41, transparent, #00FF41);
+  border-radius: 12px;
+  z-index: -1;
+  opacity: 0.3;
+  animation: border-glow 3s ease-in-out infinite;
+}
+
+@keyframes border-glow {
+  0%, 100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+.personality-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 24px;
+  justify-content: center;
+}
+
+.personality-tags .tag {
+  font-family: 'VT323', monospace;
+  font-size: 20px;
+  padding: 8px 20px;
+  background: rgba(0, 255, 65, 0.1);
+  border: 1px solid rgba(0, 255, 65, 0.5);
+  color: #00FF41;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition: all 0.3s ease;
+}
+
+.personality-tags .tag:hover {
+  background: rgba(0, 255, 65, 0.2);
+  box-shadow: 0 0 15px rgba(0, 255, 65, 0.4);
+}
+
+.character-intro {
+  font-family: 'VT323', monospace;
+  font-size: 24px;
+  color: #FFFFFF;
+  text-align: center;
+  line-height: 1.6;
+  margin: 0;
+  text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+}
+
+/* 名字输入区域 */
+.name-input-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  width: 100%;
+  max-width: 500px;
+}
+
+.prompt-text {
+  font-family: 'VT323', monospace;
+  font-size: 26px;
+  color: #00FF41;
+  text-align: center;
+  margin: 0;
+  text-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+}
+
+.name-input {
+  font-family: 'VT323', monospace;
+  font-size: 28px;
+  padding: 16px 24px;
+  background: rgba(0, 0, 0, 0.8);
+  border: 2px solid rgba(0, 255, 65, 0.5);
+  color: #00FF41;
+  border-radius: 8px;
+  outline: none;
+  transition: all 0.3s ease;
+  width: 100%;
+  text-align: center;
+  letter-spacing: 2px;
+}
+
+.name-input:focus {
+  border-color: #00FF41;
+  box-shadow: 0 0 25px rgba(0, 255, 65, 0.4);
+  background: rgba(0, 0, 0, 0.9);
+}
+
+.name-input::placeholder {
+  color: rgba(0, 255, 65, 0.3);
+  letter-spacing: 1px;
+}
+
+/* 确认按钮（在 naming-section 中） */
+.name-input-section .confirm-btn {
+  font-size: 26px;
+  padding: 18px 50px;
+  box-shadow: 0 0 25px rgba(0, 255, 65, 0.4);
+  transition: all 0.3s ease;
+}
+
+.name-input-section .confirm-btn:hover:not(:disabled) {
+  background: rgba(0, 255, 65, 0.15);
+  box-shadow: 0 0 40px rgba(0, 255, 65, 0.6);
+  transform: translateY(-3px);
+}
+
+.name-input-section .confirm-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* 生成中阶段 - 等待 Lip-Sync 视频 */
+.generating-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at center, rgba(0, 20, 10, 0.95) 0%, #000000 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  animation: fadeIn 0.5s ease;
+}
+
+.generating-text {
+  font-family: 'VT323', monospace;
+  font-size: 30px;
+  color: #00FF41;
+  margin-top: 30px;
+  text-align: center;
+  padding: 0 40px;
+  text-shadow: 0 0 15px rgba(0, 255, 65, 0.6);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.generating-overlay .loading-bar {
+  animation: expand-bar 2s ease-in-out infinite;
+}
+
+@keyframes expand-bar {
+  0%, 100% {
+    width: 40%;
+  }
+  50% {
+    width: 70%;
+  }
+}
+
+/* Fade-in 动画 */
+.fade-in {
+  animation: fadeIn 1s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 响应式调整 */
+@media (max-width: 600px) {
+  .character-card {
+    padding: 24px 28px;
+  }
+
+  .character-intro {
+    font-size: 20px;
+  }
+
+  .personality-tags .tag {
+    font-size: 18px;
+    padding: 6px 16px;
+  }
+
+  .name-input {
+    font-size: 24px;
+    padding: 14px 20px;
+  }
+
+  .prompt-text {
+    font-size: 22px;
+  }
+
+  .loading-text,
+  .generating-text {
+    font-size: 24px;
+  }
 }
