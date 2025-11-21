@@ -846,19 +846,6 @@ Your response:`
     }
   }
 
-  // DEBUG: Skip to next stage (for testing)
-  const handleSkipToNextStage = () => {
-    console.warn('[Stage2Mirror] 🚨 SKIP: Force completing stage (DEBUG MODE)')
-
-    const completionData = {
-      captured_photo_url: capturedPhotoDataUrl || 'skipped',
-      generated_image_url: generatedImageUrl || 'skipped',
-      analysis: confirmedAnalysis || latestAnalysis || { skipped: true },
-      conversation_history: messages
-    }
-
-    onComplete(completionData)
-  }
 
   // Handle user text input (for future implementation)
   const handleUserMessage = (text) => {
@@ -1200,61 +1187,6 @@ Your response:`
           </motion.div>
         )}
 
-        {/* ========================================== */}
-        {/* DEBUG: State Display & Controls */}
-        {/* ========================================== */}
-        {/* DISABLED: Debug panel removed to avoid blocking UI */}
-        {false && (
-          <div style={{
-            position: 'fixed',
-            top: '10px',
-            right: '10px',
-            background: 'rgba(0,0,0,0.9)',
-            color: '#00ff00',
-            padding: '10px',
-            borderRadius: '5px',
-            fontSize: '11px',
-            fontFamily: 'monospace',
-            zIndex: 9999,
-            maxWidth: '250px',
-            pointerEvents: 'auto'
-          }}>
-            <div><strong>🔍 Stage 2 State:</strong></div>
-            <div>Phase: <span style={{ color: '#00ffff' }}>{phase}</span></div>
-            <div>SubState: <span style={{ color: '#00ffff' }}>{conversationSubState}</span></div>
-            <div>Mirror: <span style={{ color: '#00ffff' }}>{mirrorDisplayMode}</span></div>
-            <div>Generation: <span style={{ color: '#00ffff' }}>{generationStatus}</span></div>
-            <div>Photo: {capturedPhotoDataUrl ? '✅' : '❌'}</div>
-            <div>Generated: {generatedImageUrl ? '✅' : '❌'}</div>
-            <div>Messages: {messages.length}</div>
-            <div style={{ marginTop: '5px', borderTop: '1px solid #00ff00', paddingTop: '5px' }}>
-              <strong>🎯 Button Visibility:</strong>
-            </div>
-            <div>CAPTURE: {phase === 'CONVERSATION' && conversationSubState === 'CAMERA' ? '✅' : '❌'}</div>
-            <div>REVIEW: {phase === 'CONVERSATION' && conversationSubState === 'REVIEWING' ? '✅' : '❌'}</div>
-            <div>VIEW RESULT: {showGenerationNotification ? '✅' : '❌'}</div>
-            <div style={{ color: generationStatus === 'completed' && conversationSubState === 'SHOWING_RESULT' ? '#00ff00' : '#ff4444' }}>
-              <strong>CONFIRM ID: {generationStatus === 'completed' && conversationSubState === 'SHOWING_RESULT' ? '✅ VISIBLE' : '❌ HIDDEN'}</strong>
-            </div>
-
-            <button
-              onClick={handleSkipToNextStage}
-              style={{
-                marginTop: '10px',
-                padding: '8px 12px',
-                background: '#ff4444',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                width: '100%',
-                fontWeight: 'bold'
-              }}
-            >
-              🚨 SKIP TO NEXT STAGE
-            </button>
-          </div>
-        )}
       </div>
 
     </div>
