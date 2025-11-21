@@ -47,6 +47,9 @@ const Stage2Mirror = ({ config, onComplete, geminiLive }) => {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [connectionError, setConnectionError] = useState(false)  // Gemini Live 连接失败
   const [cameraError, setCameraError] = useState(false)  // 摄像头访问失败
+  const [generationProgress, setGenerationProgress] = useState(0)  // 图像生成进度 (0-100)
+  const [inputMode, setInputMode] = useState('voice')  // 输入模式: 'voice' | 'text'
+  const [textInput, setTextInput] = useState('')  // 文本输入内容
 
   // ===== Refs =====
   const videoRef = useRef(null)
@@ -102,8 +105,8 @@ const Stage2Mirror = ({ config, onComplete, geminiLive }) => {
       // 1. 开启摄像头
       await startCamera()
 
-      // 2. 🔥 暂时禁用视频流输入来测试
-      // startVideoStreaming()
+      // 2. 开始视频流输入
+      startVideoStreaming()
 
       // 3. 等待 AI 主动打招呼（通过 systemInstruction 配置）
       // AI 会自动发送欢迎消息，我们只需监听消息即可
@@ -263,6 +266,24 @@ const Stage2Mirror = ({ config, onComplete, geminiLive }) => {
   }
 
   // ============================================================
+  // ⌨️ 文本输入：发送文本消息
+  // ============================================================
+  const handleSendText = async () => {
+    if (!textInput.trim()) return
+
+    const text = textInput.trim()
+    setTextInput('')
+
+    // 显示用户消息
+    setMessages(prev => [...prev, { role: 'user', text }])
+
+    // 发送给 Gemini Live
+    if (geminiLive && geminiLive.sendText) {
+      await geminiLive.sendText(text)
+    }
+  }
+
+  // ============================================================
   // 📸 拍照流程
   // ============================================================
   const handleCapture = () => {
@@ -322,7 +343,25 @@ const Stage2Mirror = ({ config, onComplete, geminiLive }) => {
   // ============================================================
   const triggerBackgroundGeneration = async (analysis) => {
     try {
+      // 重置进度
+      setGenerationProgress(0)
+
+      // 模拟进度更新（真实 API 没有进度反馈）
+      const progressInterval = setInterval(() => {
+        setGenerationProgress(prev => {
+          if (prev >= 90) {
+            clearInterval(progressInterval)
+            return prev
+          }
+          return prev + Math.random() * 15
+        })
+      }, 500)
+
       const result = await generateWithRetry(capturedPhoto, analysis, 3)
+
+      // 完成时清除进度
+      clearInterval(progressInterval)
+      setGenerationProgress(100)
 
       setGeneratedImage(result.imageUrl)
 
@@ -331,6 +370,7 @@ const Stage2Mirror = ({ config, onComplete, geminiLive }) => {
     } catch (error) {
       console.error('[Stage2Mirror] ❌ 生成失败:', error)
       alert('图像生成失败，请重试')
+      setGenerationProgress(0)
     }
   }
 
@@ -394,6 +434,90 @@ const Stage2Mirror = ({ config, onComplete, geminiLive }) => {
                 <span className="status-text">ONLINE</span>
               </div>
             </div>
+
+            {/* 输入模式切换按钮（中间） */}
+            {(state === STATES.TALKING || state === STATES.GENERATING) && (
+              <div style={{
+                position: 'absolute',
+                top: '20px',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                display: 'flex',
+                gap: '8px',
+                background: 'rgba(15, 23, 42, 0.8)',
+                borderRadius: '20px',
+                padding: '4px',
+                border: '1px solid rgba(34, 211, 238, 0.2)'
+              }}>
+                <button
+                  onClick={() => setInputMode('voice')}
+                  style={{
+                    fontFamily: 'VT323, monospace',
+                    fontSize: '14px',
+                    padding: '6px 16px',
+                    background: inputMode === 'voice' ? '#22d3ee' : 'transparent',
+                    color: inputMode === 'voice' ? '#0f172a' : '#64748b',
+                    border: 'none',
+                    borderRadius: '16px',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  🎤 语音
+                </button>
+                <button
+                  onClick={() => setInputMode('text')}
+                  style={{
+                    fontFamily: 'VT323, monospace',
+                    fontSize: '14px',
+                    padding: '6px 16px',
+                    background: inputMode === 'text' ? '#22d3ee' : 'transparent',
+                    color: inputMode === 'text' ? '#0f172a' : '#64748b',
+                    border: 'none',
+                    borderRadius: '16px',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  ⌨️ 打字
+                </button>
+              </div>
+            )}
+
+            {/* 图像生成进度条（右上角） */}
+            {state === STATES.GENERATING && generationProgress > 0 && generationProgress < 100 && (
+              <div style={{
+                position: 'absolute',
+                top: '20px',
+                right: '20px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <div style={{
+                  fontFamily: 'VT323, monospace',
+                  fontSize: '14px',
+                  color: '#22d3ee',
+                  minWidth: '40px'
+                }}>
+                  {Math.floor(generationProgress)}%
+                </div>
+                <div style={{
+                  width: '100px',
+                  height: '4px',
+                  background: 'rgba(100, 116, 139, 0.3)',
+                  borderRadius: '2px',
+                  overflow: 'hidden'
+                }}>
+                  <div style={{
+                    width: `${generationProgress}%`,
+                    height: '100%',
+                    background: 'linear-gradient(90deg, #22d3ee, #06b6d4)',
+                    transition: 'width 0.3s ease'
+                  }} />
+                </div>
+              </div>
+            )}
           </div>
 
           {/* 视频/图像显示区 */}
@@ -466,6 +590,28 @@ const Stage2Mirror = ({ config, onComplete, geminiLive }) => {
                 </div>
               ))}
             </div>
+
+            {/* 转录文本显示（最后一句，滚动效果） */}
+            {messages.length > 0 && messages[messages.length - 1].role === 'user' && (
+              <div style={{
+                marginTop: '8px',
+                padding: '8px 12px',
+                background: 'rgba(34, 211, 238, 0.1)',
+                borderLeft: '2px solid #22d3ee',
+                borderRadius: '4px',
+                overflow: 'hidden',
+                whiteSpace: 'nowrap'
+              }}>
+                <div style={{
+                  fontFamily: 'VT323, monospace',
+                  fontSize: '14px',
+                  color: '#22d3ee',
+                  animation: 'scrollText 10s linear infinite'
+                }}>
+                  📝 转录: {messages[messages.length - 1].text}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -482,9 +628,10 @@ const Stage2Mirror = ({ config, onComplete, geminiLive }) => {
 
         {/* 主按钮切换（使用 AnimatePresence） */}
         <AnimatePresence mode="wait">
-          {/* Push-to-Talk 按钮 */}
-          {(state === STATES.TALKING ||
-            (state === STATES.GENERATING && !generatedImage)) && (
+          {/* 语音模式: Push-to-Talk 按钮 */}
+          {inputMode === 'voice' &&
+            (state === STATES.TALKING ||
+              (state === STATES.GENERATING && !generatedImage)) && (
             <motion.button
               key="push-to-talk"
               initial={{ opacity: 0, scale: 0.8 }}
@@ -499,6 +646,62 @@ const Stage2Mirror = ({ config, onComplete, geminiLive }) => {
             >
               {isRecording ? '🔴 录音中...' : '🎤 按住说话'}
             </motion.button>
+          )}
+
+          {/* 打字模式: 文本输入框 + 发送按钮 */}
+          {inputMode === 'text' &&
+            (state === STATES.TALKING ||
+              (state === STATES.GENERATING && !generatedImage)) && (
+            <motion.div
+              key="text-input"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              transition={{ duration: 0.3 }}
+              style={{
+                display: 'flex',
+                gap: '12px',
+                alignItems: 'center',
+                width: '100%',
+                maxWidth: '400px'
+              }}
+            >
+              <input
+                type="text"
+                value={textInput}
+                onChange={(e) => setTextInput(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSendText()}
+                placeholder="输入消息..."
+                style={{
+                  flex: 1,
+                  fontFamily: 'VT323, monospace',
+                  fontSize: '16px',
+                  padding: '12px 16px',
+                  background: 'rgba(15, 23, 42, 0.8)',
+                  color: '#e2e8f0',
+                  border: '1px solid rgba(34, 211, 238, 0.3)',
+                  borderRadius: '8px',
+                  outline: 'none'
+                }}
+              />
+              <button
+                onClick={handleSendText}
+                disabled={!textInput.trim()}
+                style={{
+                  fontFamily: 'VT323, monospace',
+                  fontSize: '16px',
+                  padding: '12px 24px',
+                  background: textInput.trim() ? '#22d3ee' : 'rgba(34, 211, 238, 0.3)',
+                  color: textInput.trim() ? '#0f172a' : '#64748b',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: textInput.trim() ? 'pointer' : 'not-allowed',
+                  transition: 'all 0.3s ease'
+                }}
+              >
+                📤 发送
+              </button>
+            </motion.div>
           )}
 
           {/* 拍照按钮 */}
