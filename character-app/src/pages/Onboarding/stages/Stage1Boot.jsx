@@ -33,6 +33,7 @@ const Stage1Boot = ({ config, globalStyles, onComplete, currentStep, userData })
   const [isBooting, setIsBooting] = useState(true)                     // 是否处于启动序列播放中
   const [bootSequenceDimmed, setBootSequenceDimmed] = useState(false)  // 启动序列是否变暗(播放完后变灰,突出后续文字)
   const [isRequestingPermission, setIsRequestingPermission] = useState(false)  // 防止用户重复点击"INITIATE"按钮
+  const [permissionDenied, setPermissionDenied] = useState(false)      // 权限被拒绝后显示友好提示
 
   // === 打字机效果状态(模拟终端逐字输出) ===
   const [bootLines, setBootLines] = useState(['', '', ''])  // 启动序列 3 行文字的当前显示内容
@@ -55,11 +56,11 @@ const Stage1Boot = ({ config, globalStyles, onComplete, currentStep, userData })
   // ============================================================
   // 【动画逻辑 1】启动序列打字机效果
   // 产品需求:模拟终端启动,逐字显示 3 行启动文本,营造"系统正在加载"的科技感
-  // 技术实现:使用固定时间间隔(30ms/字符),不依赖音频同步(已移除音频)
+  // 技术实现:使用固定时间间隔(20ms/字符),优化后总时长约 8 秒
   // ============================================================
   useEffect(() => {
     const startBootSequenceTyping = () => {
-      const charDelay = 30 // 每个字符显示间隔 30ms(太快会看不清,太慢会显得卡顿)
+      const charDelay = 20 // 每个字符显示间隔 20ms(优化后加快 33%)
       let lineIndex = 0    // 当前打字的行索引(0-2)
       let charIndex = 0    // 当前打字的字符索引
 
@@ -70,10 +71,10 @@ const Stage1Boot = ({ config, globalStyles, onComplete, currentStep, userData })
           setIsBooting(false)          // 标记启动序列结束
           setBootSequenceDimmed(true)  // 将启动文字变暗(突出后续的 Pika 问候语)
 
-          // 等待 800ms 后开始显示 Pika 问候语(给用户一个视觉停顿,避免信息过载)
+          // 等待 400ms 后开始显示 Pika 问候语(优化后缩短等待时间)
           setTimeout(() => {
             setShowGreeting(true)
-          }, 800)
+          }, 400)
           return
         }
 
@@ -137,7 +138,7 @@ const Stage1Boot = ({ config, globalStyles, onComplete, currentStep, userData })
   useEffect(() => {
     if (!showGreeting) return  // 等待启动序列播放完才开始
 
-    const charDelay = 50  // 每个字符 50ms(比启动序列稍慢,让用户有阅读的时间)
+    const charDelay = 30  // 每个字符 30ms(优化后加快速度)
     let greetingIndex = 0
     let subtextIndex = 0
     let isGreetingComplete = false  // 【关键】用标志变量而非状态,避免 React 闭包问题
@@ -153,7 +154,7 @@ const Stage1Boot = ({ config, globalStyles, onComplete, currentStep, userData })
       else if (!isGreetingComplete) {
         isGreetingComplete = true
         setShowSubtext(true)      // 触发副标题显示
-        setTimeout(typeNextChar, 200)  // 等待 200ms 再开始打副标题(给用户一个呼吸感)
+        setTimeout(typeNextChar, 100)  // 等待 100ms 再开始打副标题(优化后缩短)
       }
       // 第三阶段:打副标题 "You can give me commands..."
       else if (subtextIndex < fullSubtext.length) {
@@ -209,7 +210,7 @@ const Stage1Boot = ({ config, globalStyles, onComplete, currentStep, userData })
     } catch (error) {
       // 用户拒绝权限或浏览器不支持 getUserMedia
       console.error('[Stage1Boot] ❌ 权限获取失败:', error)
-      alert('需要摄像头和麦克风权限才能继续。请允许权限后重试。')
+      setPermissionDenied(true)  // 显示友好的权限拒绝提示
       setIsRequestingPermission(false)  // 失败时解锁,允许用户重新点击
     }
     // 注意:成功时不解锁,避免用户在跳转过程中重复点击
@@ -238,6 +239,48 @@ const Stage1Boot = ({ config, globalStyles, onComplete, currentStep, userData })
           <div className="tv-static" />
         </div>
       </div>
+
+      {/* 跳过按钮（右上角） */}
+      {(isBooting || showGreeting) && !showButton && (
+        <button
+          onClick={() => {
+            // 跳过所有动画，直接显示按钮
+            setIsBooting(false)
+            setBootSequenceDimmed(true)
+            setShowGreeting(true)
+            setShowSubtext(true)
+            setGreetingText(fullGreeting)
+            setSubtextText(fullSubtext)
+            setEnableRotation(true)
+            setShowButton(true)
+          }}
+          style={{
+            position: 'fixed',
+            top: '30px',
+            right: '30px',
+            zIndex: 10,
+            fontFamily: 'VT323, monospace',
+            fontSize: '16px',
+            padding: '8px 20px',
+            background: 'transparent',
+            color: 'rgba(100, 116, 139, 0.6)',
+            border: '1px solid rgba(100, 116, 139, 0.3)',
+            cursor: 'pointer',
+            letterSpacing: '1px',
+            transition: 'all 0.3s ease'
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.color = '#64748b'
+            e.target.style.borderColor = '#64748b'
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.color = 'rgba(100, 116, 139, 0.6)'
+            e.target.style.borderColor = 'rgba(100, 116, 139, 0.3)'
+          }}
+        >
+          [ SKIP → ]
+        </button>
+      )}
 
       {/* 内容层 */}
       <div className="content-layer">
@@ -299,7 +342,7 @@ const Stage1Boot = ({ config, globalStyles, onComplete, currentStep, userData })
         </div>
 
         {/* CTA 按钮 */}
-        {showButton && (
+        {showButton && !permissionDenied && (
           <motion.div
             className="initiate-section"
             initial={{ opacity: 0 }}
@@ -334,18 +377,111 @@ const Stage1Boot = ({ config, globalStyles, onComplete, currentStep, userData })
             <button
               className="initiate-btn terminal-btn glitch-border"
               onClick={handleInitiate}
+              disabled={isRequestingPermission}
               style={{
                 fontFamily: 'VT323, monospace',
                 fontSize: '24px',
                 padding: '16px 48px',
                 background: 'transparent',
                 color: '#22d3ee',
-                cursor: 'pointer',
+                cursor: isRequestingPermission ? 'not-allowed' : 'pointer',
+                opacity: isRequestingPermission ? 0.6 : 1,
                 letterSpacing: '2px'
               }}
             >
-              [ INITIATE ]
+              {isRequestingPermission ? '[ REQUESTING... ]' : '[ INITIATE ]'}
             </button>
+          </motion.div>
+        )}
+
+        {/* 权限拒绝提示 */}
+        {permissionDenied && (
+          <motion.div
+            className="permission-denied-panel"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            style={{
+              textAlign: 'center',
+              position: 'fixed',
+              bottom: '100px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              zIndex: 1,
+              maxWidth: '400px',
+              padding: '24px',
+              background: 'rgba(15, 23, 42, 0.95)',
+              border: '1px solid rgba(34, 211, 238, 0.3)',
+              borderRadius: '8px'
+            }}
+          >
+            <p style={{
+              fontFamily: 'VT323, monospace',
+              fontSize: '20px',
+              color: '#f59e0b',
+              marginBottom: '16px',
+              letterSpacing: '1px'
+            }}>
+              ⚠️ 无法访问权限
+            </p>
+
+            <p style={{
+              fontFamily: 'VT323, monospace',
+              fontSize: '16px',
+              color: '#94a3b8',
+              lineHeight: 1.6,
+              marginBottom: '24px'
+            }}>
+              需要摄像头和麦克风权限才能继续。
+              <br />
+              PIKA 需要看到和听到你。
+            </p>
+
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+              <button
+                className="terminal-btn"
+                onClick={() => {
+                  setPermissionDenied(false)
+                  handleInitiate()
+                }}
+                style={{
+                  fontFamily: 'VT323, monospace',
+                  fontSize: '18px',
+                  padding: '12px 32px',
+                  background: 'transparent',
+                  color: '#22d3ee',
+                  border: '1px solid #22d3ee',
+                  cursor: 'pointer',
+                  letterSpacing: '1px'
+                }}
+              >
+                [ ↻ 重试 ]
+              </button>
+
+              <button
+                className="terminal-btn"
+                onClick={() => {
+                  // 跳转到上传照片模式（降级方案）
+                  onComplete({
+                    permissions_granted: false,
+                    skip_to_upload: true,
+                    timestamp: new Date().toISOString()
+                  })
+                }}
+                style={{
+                  fontFamily: 'VT323, monospace',
+                  fontSize: '18px',
+                  padding: '12px 32px',
+                  background: 'transparent',
+                  color: '#64748b',
+                  border: '1px solid #64748b',
+                  cursor: 'pointer',
+                  letterSpacing: '1px'
+                }}
+              >
+                [ 上传照片 ]
+              </button>
+            </div>
           </motion.div>
         )}
       </div>

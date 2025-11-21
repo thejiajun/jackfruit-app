@@ -1,3 +1,4 @@
+
 /**
  * 【核心模块】Onboarding 引擎 - 4 阶段流程编排器
  *
@@ -310,8 +311,8 @@ export const OnboardingEngine = () => {
           } else {
             geminiLiveRef.current = new GeminiLiveService(apiKey, {
               model: 'models/gemini-2.5-flash-native-audio-preview-09-2025',
-              voiceName: 'Achird',
-              responseModality: 'AUDIO_TEXT'
+              voiceName: 'Achird'
+              // responseModalities 使用默认值: [Modality.AUDIO, Modality.TEXT]
             })
             geminiLiveRef.current.connect()
           }

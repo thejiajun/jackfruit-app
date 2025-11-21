@@ -15,7 +15,7 @@
  * 参考文档: https://github.com/googleapis/js-genai
  */
 
-import { GoogleGenAI } from '@google/genai'
+import { GoogleGenAI, Modality, MediaResolution } from '@google/genai'
 
 class GeminiLiveService {
   constructor(apiKey, options = {}) {
@@ -43,7 +43,7 @@ class GeminiLiveService {
     this.config = {
       model: options.model || 'models/gemini-2.5-flash-native-audio-preview-09-2025', // AI 模型(原生音频版)
       voiceName: options.voiceName || 'Zephyr',                // AI 语音角色(Zephyr 男声 / Achird 女声)
-      responseModality: options.responseModality || 'AUDIO',   // 返回模式:'AUDIO'(纯语音) | 'AUDIO_TEXT'(语音+文字)
+      responseModalities: options.responseModalities || [Modality.AUDIO, Modality.TEXT],   // 返回模式:音频+文本
       temperature: options.temperature || 0.9,                 // 创造性参数(0-1,越高越随机)
       ...options.config
     }
@@ -51,7 +51,7 @@ class GeminiLiveService {
     console.log('[GeminiLive] Service initialized', {
       model: this.config.model,
       voiceName: this.config.voiceName,
-      responseModality: this.config.responseModality
+      responseModalities: this.config.responseModalities
     })
   }
 
@@ -77,20 +77,9 @@ class GeminiLiveService {
       console.log('[GeminiLive] Connecting...')
 
       // === 构建 Gemini Live 会话配置 ===
+      // 🔥 测试：使用最小化配置，逐步添加参数来定位问题
       const sessionConfig = {
-        responseModalities: [this.config.responseModality],     // 返回格式:'AUDIO' | 'TEXT' | 'AUDIO_TEXT'
-        mediaResolution: 'MEDIA_RESOLUTION_MEDIUM',             // 视频质量:LOW(快) | MEDIUM(平衡) | HIGH(慢)
-        speechConfig: {
-          voiceConfig: {
-            prebuiltVoiceConfig: {
-              voiceName: this.config.voiceName                  // AI 语音角色
-            }
-          }
-        },
-        contextWindowCompression: {
-          triggerTokens: '25600',                               // 🔥 对话超过此 token 数时触发压缩（字符串格式）
-          slidingWindow: { targetTokens: '12800' },             // 🔥 压缩后保留最近 12800 tokens（字符串格式）
-        },
+        responseModalities: this.config.responseModalities     // 返回格式: [Modality.AUDIO, Modality.TEXT]
       }
 
       // === 创建 WebSocket 会话并注册生命周期回调 ===
@@ -424,7 +413,7 @@ class GeminiLiveService {
    * 【发送视频帧】向 AI 发送摄像头的单帧图像
    *
    * 产品场景:让 AI "看到"用户,分析用户的外貌、环境、表情等
-   * 技术实现:定期(例如每 2 秒)捕获摄像头画面,转为 JPEG 后发送
+   * 技术实现:定期(例如每 2 秒)捕获摄像头画面,转为 JPEG Blob 后发送
    *
    * 参数:
    * - imageData: base64 编码的图片数据(不含 data URL 前缀)
@@ -438,11 +427,17 @@ class GeminiLiveService {
     try {
       console.log('[GeminiLive] Sending video frame...')
 
+      // 🔥 将 base64 转换为 Blob（API 要求 Blob 格式，不是 { data, mimeType }）
+      const byteCharacters = atob(imageData)
+      const byteNumbers = new Array(byteCharacters.length)
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i)
+      }
+      const byteArray = new Uint8Array(byteNumbers)
+      const blob = new Blob([byteArray], { type: mimeType })
+
       await this.session.sendRealtimeInput({
-        image: {
-          data: imageData, // base64 encoded image
-          mimeType
-        }
+        video: blob  // 🔥 使用 video 属性发送 Blob（没有 image 属性！）
       })
 
       console.log('[GeminiLive] ✅ Video frame sent')

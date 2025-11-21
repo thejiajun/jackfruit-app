@@ -38,6 +38,10 @@ const Stage4Avatar = ({ config, globalStyles, onComplete, currentStep, userData 
   // === 防重复提交锁 ===
   const [isSubmitting, setIsSubmitting] = useState(false)  // 防止用户连续点击"CONFIRM NAME"或视频多次触发 onComplete
 
+  // === 错误处理 ===
+  const [generationError, setGenerationError] = useState(null)  // 视频生成失败错误类型
+  const [generationProgress, setGenerationProgress] = useState(0)  // 生成进度(0-100)
+
   useEffect(() => {
     console.log('[Stage4Avatar] Mounted', { userData })
     checkRevealingVideo()
@@ -46,22 +50,75 @@ const Stage4Avatar = ({ config, globalStyles, onComplete, currentStep, userData 
   // ============================================================
   // 【生命周期】检查 Revealing 视频生成状态
   // 产品需求:Stage 3 触发视频生成后,Stage 4 需要轮询检查生成是否完成
-  // 技术实现:开发环境直接使用 mock 视频,生产环境需要调用 API 查询生成状态
+  // 技术实现:60 秒超时轮询,失败后提供重试/跳过选项
   // ============================================================
   const checkRevealingVideo = async () => {
-    // TODO: 生产环境调用 API 查询视频生成状态
-    // const status = await videoGenerationService.checkStatus(userData.generation_job_id)
-    // if (status.completed) { setRevealingVideoUrl(status.video_url) }
+    const startTime = Date.now()
+    const TIMEOUT = 60000  // 60 秒超时
+    const POLL_INTERVAL = 2000  // 每 2 秒查询一次
 
-    // 开发阶段:直接使用 mock 视频
-    setTimeout(() => {
-      setRevealingVideoUrl('/mock-videos/revealing.mp4')
-      setCharacterData({
-        personality_tags: ['Introvert', 'Creative', 'Night Owl'],
-        personality_summary: 'A quiet soul seeking wisdom in the digital void'
-      })
-      setPhase('revealing')
-    }, 1000)
+    const pollStatus = async () => {
+      try {
+        // TODO: 生产环境调用真实 API
+        // const status = await videoGenerationService.checkStatus(userData.generation_job_id)
+
+        // 开发环境: 使用 mock 数据
+        const useMock = true
+
+        if (useMock) {
+          // 模拟生成过程 (5 秒后完成)
+          const elapsed = Date.now() - startTime
+          const progress = Math.min(Math.floor((elapsed / 5000) * 100), 100)
+          setGenerationProgress(progress)
+
+          if (elapsed > 5000) {
+            // 模拟成功
+            setRevealingVideoUrl('/mock-videos/revealing.mp4')
+            setCharacterData({
+              personality_tags: ['Introvert', 'Creative', 'Night Owl'],
+              personality_summary: 'A quiet soul seeking wisdom in the digital void'
+            })
+            setPhase('revealing')
+            return
+          }
+
+          // 继续轮询
+          setTimeout(pollStatus, POLL_INTERVAL)
+          return
+        }
+
+        // 生产环境逻辑
+        // if (status.completed) {
+        //   setRevealingVideoUrl(status.video_url)
+        //   setCharacterData(status.character_data)
+        //   setPhase('revealing')
+        //   return
+        // }
+        //
+        // if (status.failed) {
+        //   setGenerationError('generation_failed')
+        //   return
+        // }
+        //
+        // if (status.progress) {
+        //   setGenerationProgress(status.progress)
+        // }
+
+        // 检查超时
+        if (Date.now() - startTime > TIMEOUT) {
+          setGenerationError('timeout')
+          return
+        }
+
+        // 继续轮询
+        setTimeout(pollStatus, POLL_INTERVAL)
+      } catch (error) {
+        console.error('[Stage4Avatar] ❌ 查询视频状态失败:', error)
+        setGenerationError('api_error')
+      }
+    }
+
+    pollStatus()
   }
 
   // ============================================================
@@ -138,7 +195,7 @@ const Stage4Avatar = ({ config, globalStyles, onComplete, currentStep, userData 
   return (
     <div className="onboarding-step stage4-avatar">
       {/* Phase: Loading (等待 Revealing 视频) */}
-      {phase === 'loading' && (
+      {phase === 'loading' && !generationError && (
         <div className="loading-overlay">
           <div className="orb-placeholder" style={{
             width: '200px',
@@ -149,7 +206,118 @@ const Stage4Avatar = ({ config, globalStyles, onComplete, currentStep, userData 
             animation: 'pulse 2s ease-in-out infinite'
           }} />
           <p className="loading-text">"Materializing your character..."</p>
-          <div className="loading-bar" />
+
+          {/* 进度条 */}
+          <div style={{
+            width: '300px',
+            height: '4px',
+            background: 'rgba(100, 116, 139, 0.3)',
+            borderRadius: '2px',
+            margin: '2rem auto',
+            overflow: 'hidden'
+          }}>
+            <div style={{
+              width: `${generationProgress}%`,
+              height: '100%',
+              background: '#22d3ee',
+              transition: 'width 0.5s ease'
+            }} />
+          </div>
+          <p style={{
+            fontFamily: 'VT323, monospace',
+            fontSize: '16px',
+            color: '#64748b',
+            textAlign: 'center'
+          }}>
+            {generationProgress}% 完成
+          </p>
+        </div>
+      )}
+
+      {/* 视频生成失败提示 */}
+      {generationError && (
+        <div style={{
+          position: 'fixed',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          zIndex: 100,
+          background: 'rgba(15, 23, 42, 0.98)',
+          border: '1px solid rgba(34, 211, 238, 0.3)',
+          borderRadius: '8px',
+          padding: '32px',
+          maxWidth: '400px',
+          textAlign: 'center'
+        }}>
+          <p style={{
+            fontFamily: 'VT323, monospace',
+            fontSize: '20px',
+            color: '#f59e0b',
+            marginBottom: '16px'
+          }}>
+            ⚠️ 生成失败
+          </p>
+
+          <p style={{
+            fontFamily: 'VT323, monospace',
+            fontSize: '16px',
+            color: '#94a3b8',
+            lineHeight: 1.6,
+            marginBottom: '24px'
+          }}>
+            {generationError === 'timeout'
+              ? '视频生成时间较长，请重试或跳过。'
+              : generationError === 'generation_failed'
+              ? '视频生成服务遇到错误。'
+              : '无法检查生成状态。'}
+          </p>
+
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+            <button
+              onClick={() => {
+                setGenerationError(null)
+                setGenerationProgress(0)
+                setPhase('loading')
+                checkRevealingVideo()
+              }}
+              style={{
+                fontFamily: 'VT323, monospace',
+                fontSize: '18px',
+                padding: '12px 32px',
+                background: 'transparent',
+                color: '#22d3ee',
+                border: '1px solid #22d3ee',
+                cursor: 'pointer',
+                letterSpacing: '1px'
+              }}
+            >
+              [ ↻ 重试 ]
+            </button>
+
+            <button
+              onClick={() => {
+                // 跳过视频，直接进入命名阶段
+                setGenerationError(null)
+                setPhase('naming')
+                setCharacterData({
+                  personality_tags: ['Mysterious', 'Unknown'],
+                  personality_summary: 'A being of undefined origin'
+                })
+              }}
+              style={{
+                fontFamily: 'VT323, monospace',
+                fontSize: '18px',
+                padding: '12px 32px',
+                background: 'transparent',
+                color: '#64748b',
+                border: '1px solid #64748b',
+                cursor: 'pointer',
+                letterSpacing: '1px'
+              }}
+            >
+              [ 跳过视频 ]
+            </button>
+          </div>
         </div>
       )}
 

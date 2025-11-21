@@ -7,13 +7,12 @@ import { uploadPhoto } from '../../../services/storageService'
 import '../../Onboarding/styles/onboarding.css'
 
 /**
- * Stage2Mirror - 简化版 (2025-01 重构)
+ * Stage2Mirror - 重构版 (2025-01)
  *
- * 核心需求：
- * 1. 进入时立即开启摄像头 + 播放欢迎语音
- * 2. 用户按住按钮说话（Push-to-Talk）
- * 3. AI 在 2-3 轮对话后提示拍照
- * 4. 拍照 → 生成数字身份 → 确认完成
+ * UI 架构：
+ * - 对话框在 Mirror 框架内部底部
+ * - 粒子球作为底部按钮区域的背景光晕
+ * - 按钮在同一位置平滑切换
  *
  * 状态流程：
  * CONNECTING → GREETING → TALKING → READY_TO_CAPTURE
@@ -46,6 +45,8 @@ const Stage2Mirror = ({ config, onComplete, geminiLive }) => {
   const [isRecording, setIsRecording] = useState(false)
   const [geminiConnected, setGeminiConnected] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [connectionError, setConnectionError] = useState(false)  // Gemini Live 连接失败
+  const [cameraError, setCameraError] = useState(false)  // 摄像头访问失败
 
   // ===== Refs =====
   const videoRef = useRef(null)
@@ -59,7 +60,7 @@ const Stage2Mirror = ({ config, onComplete, geminiLive }) => {
   useEffect(() => {
     if (!geminiLive) {
       console.error('[Stage2Mirror] ❌ Gemini Live 实例未传入')
-      alert('Gemini Live 未初始化，请刷新页面')
+      setConnectionError(true)
       return
     }
 
@@ -67,17 +68,27 @@ const Stage2Mirror = ({ config, onComplete, geminiLive }) => {
     if (geminiLive.isConnected && geminiLive.isConnected()) {
       setGeminiConnected(true)
       setState(STATES.GREETING)
-    } else {
-      // 监听连接事件
-      const checkConnection = setInterval(() => {
-        if (geminiLive.isConnected && geminiLive.isConnected()) {
-          clearInterval(checkConnection)
-          setGeminiConnected(true)
-          setState(STATES.GREETING)
-        }
-      }, 500)
+      return
+    }
 
-      return () => clearInterval(checkConnection)
+    // 10 秒超时检测
+    const timeout = setTimeout(() => {
+      setConnectionError(true)
+    }, 10000)
+
+    // 监听连接事件
+    const checkConnection = setInterval(() => {
+      if (geminiLive.isConnected && geminiLive.isConnected()) {
+        clearInterval(checkConnection)
+        clearTimeout(timeout)
+        setGeminiConnected(true)
+        setState(STATES.GREETING)
+      }
+    }, 500)
+
+    return () => {
+      clearInterval(checkConnection)
+      clearTimeout(timeout)
     }
   }, [geminiLive])
 
@@ -91,16 +102,11 @@ const Stage2Mirror = ({ config, onComplete, geminiLive }) => {
       // 1. 开启摄像头
       await startCamera()
 
-      // 2. 开始视频流输入
-      startVideoStreaming()
+      // 2. 🔥 暂时禁用视频流输入来测试
+      // startVideoStreaming()
 
-      // 3. 播放欢迎语音
-      const greetingText = "I am your guide. Show me your form."
-      setMessages([{ role: 'ai', text: greetingText }])
-
-      if (geminiLive && geminiLive.sendText) {
-        await geminiLive.sendText(greetingText)
-      }
+      // 3. 等待 AI 主动打招呼（通过 systemInstruction 配置）
+      // AI 会自动发送欢迎消息，我们只需监听消息即可
 
       // 4. 等待语音播放完成（约 3 秒），然后进入 TALKING
       setTimeout(() => {
@@ -184,7 +190,7 @@ const Stage2Mirror = ({ config, onComplete, geminiLive }) => {
       }
     } catch (error) {
       console.error('[Stage2Mirror] ❌ 摄像头错误:', error)
-      alert('无法访问摄像头，请检查权限设置')
+      setCameraError(true)
     }
   }
 
@@ -200,7 +206,6 @@ const Stage2Mirror = ({ config, onComplete, geminiLive }) => {
   // ============================================================
   const startVideoStreaming = () => {
     if (videoStreamIntervalRef.current) return // 防止重复启动
-
 
     videoStreamIntervalRef.current = setInterval(async () => {
       if (!geminiLive || !geminiConnected || !videoRef.current || !canvasRef.current) return
@@ -219,8 +224,8 @@ const Stage2Mirror = ({ config, onComplete, geminiLive }) => {
         const frameData = canvas.toDataURL('image/jpeg', 0.8).split(',')[1]
 
         // 发送给 Gemini Live
-        if (geminiLive.sendFrame) {
-          await geminiLive.sendFrame(frameData)
+        if (geminiLive.sendVideoFrame) {
+          await geminiLive.sendVideoFrame(frameData, 'image/jpeg')
         }
       } catch (error) {
         console.error('[Stage2Mirror] ❌ 视频帧发送失败:', error)
@@ -301,7 +306,6 @@ const Stage2Mirror = ({ config, onComplete, geminiLive }) => {
       const analysis = await analyzePhotoWithVision(capturedPhoto)
       setPhotoAnalysis(analysis)
 
-
       // 切换到 GENERATING 状态
       setState(STATES.GENERATING)
 
@@ -317,7 +321,6 @@ const Stage2Mirror = ({ config, onComplete, geminiLive }) => {
   // 🎨 图像生成
   // ============================================================
   const triggerBackgroundGeneration = async (analysis) => {
-
     try {
       const result = await generateWithRetry(capturedPhoto, analysis, 3)
 
@@ -332,7 +335,6 @@ const Stage2Mirror = ({ config, onComplete, geminiLive }) => {
   }
 
   const notifyGenerationComplete = async () => {
-
     const announcement = "Your digital form is ready."
     setMessages(prev => [...prev, { role: 'ai', text: announcement }])
 
@@ -379,22 +381,25 @@ const Stage2Mirror = ({ config, onComplete, geminiLive }) => {
   // 🎨 UI 渲染
   // ============================================================
   return (
-    <div className="stage2-container">
-      {/* 背景粒子球 */}
-      <div className="nova-orb-background">
-        <NovaOrbCanvas
-          mode="IDLE"
-          particleCount={260}
-        />
-      </div>
+    <div className="stage2-mirror">
+      {/* Mirror 卡片容器 */}
+      <div className="mirror-container">
+        <div className="mirror-frame">
+          {/* 顶部栏（在框架内） */}
+          <div className="mirror-top-bar">
+            <div className="mirror-title-section">
+              <div className="mirror-title">THE MIRROR</div>
+              <div className="mirror-status">
+                <span className="status-dot"></span>
+                <span className="status-text">ONLINE</span>
+              </div>
+            </div>
+          </div>
 
-      {/* 主内容区域 */}
-      <div className="stage2-content">
-        {/* 镜像显示区域 */}
-        <div className="mirror-container">
-          <div className="mirror-frame">
+          {/* 视频/图像显示区 */}
+          <div className="mirror-content">
             {/* 视频画面 */}
-            {!showGeneratedImage && (
+            {!showGeneratedImage && state !== STATES.REVIEWING && (
               <video
                 ref={videoRef}
                 autoPlay
@@ -447,34 +452,45 @@ const Stage2Mirror = ({ config, onComplete, geminiLive }) => {
             {/* 隐藏的 canvas（用于捕获帧） */}
             <canvas ref={canvasRef} style={{ display: 'none' }} />
           </div>
-        </div>
 
-        {/* 状态指示器 */}
-        <div className="state-indicator">
-          {state === STATES.CONNECTING && <p>⏳ 连接中...</p>}
-          {state === STATES.GREETING && <p>👋 欢迎</p>}
-          {state === STATES.TALKING && <p>💬 对话中</p>}
-          {state === STATES.READY_TO_CAPTURE && <p>📸 准备拍照</p>}
-          {state === STATES.REVIEWING && <p>🔍 查看照片</p>}
-          {state === STATES.GENERATING && <p>🎨 生成中...</p>}
-          {state === STATES.SHOWING_RESULT && <p>✨ 查看结果</p>}
-        </div>
-
-        {/* 消息历史 */}
-        <div className="messages-container">
-          {messages.slice(-3).map((msg, idx) => (
-            <div key={idx} className={`message message-${msg.role}`}>
-              <span className="message-role">{msg.role === 'ai' ? '🤖' : '👤'}</span>
-              <span className="message-text">{msg.text}</span>
+          {/* 对话框（在框架内底部） */}
+          <div className="mirror-dialogue-overlay">
+            <div className="pika-entity-label">PIKA_ENTITY</div>
+            <div className="dialogue-messages">
+              {messages.slice(-3).map((msg, idx) => (
+                <div key={idx} className="dialogue-message">
+                  <span style={{ color: msg.role === 'ai' ? '#22d3ee' : '#94a3b8' }}>
+                    {msg.role === 'ai' ? '🤖 ' : '👤 '}
+                  </span>
+                  {msg.text}
+                </div>
+              ))}
             </div>
-          ))}
+          </div>
+        </div>
+      </div>
+
+      {/* 控制按钮区域（在框架外） */}
+      <div className="mirror-controls-outer">
+        {/* 粒子球背景光晕 */}
+        <div className="controls-orb-background">
+          <NovaOrbCanvas
+            mode="IDLE"
+            particleCount={260}
+          />
         </div>
 
-        {/* 交互控件 */}
-        <div className="controls-container">
+        {/* 主按钮切换（使用 AnimatePresence） */}
+        <AnimatePresence mode="wait">
           {/* Push-to-Talk 按钮 */}
-          {(state === STATES.TALKING || state === STATES.GENERATING) && (
-            <button
+          {(state === STATES.TALKING ||
+            (state === STATES.GENERATING && !generatedImage)) && (
+            <motion.button
+              key="push-to-talk"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              transition={{ duration: 0.3 }}
               className={`push-to-talk-button ${isRecording ? 'recording' : ''}`}
               onMouseDown={handleStartRecording}
               onMouseUp={handleStopRecording}
@@ -482,47 +498,206 @@ const Stage2Mirror = ({ config, onComplete, geminiLive }) => {
               onTouchEnd={handleStopRecording}
             >
               {isRecording ? '🔴 录音中...' : '🎤 按住说话'}
-            </button>
+            </motion.button>
           )}
 
           {/* 拍照按钮 */}
           {state === STATES.READY_TO_CAPTURE && (
-            <button className="capture-button" onClick={handleCapture}>
+            <motion.button
+              key="capture"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              transition={{ duration: 0.3 }}
+              className="capture-button"
+              onClick={handleCapture}
+            >
               📸 拍照
-            </button>
+            </motion.button>
           )}
 
-          {/* 查看照片控件 */}
-          {state === STATES.REVIEWING && (
-            <div className="review-controls">
-              <button onClick={handleRetake}>🔄 重拍</button>
-              <button onClick={handleConfirmPhoto}>✅ 确认</button>
-            </div>
-          )}
-
-          {/* 生成完成通知 */}
+          {/* 查看结果按钮 */}
           {state === STATES.GENERATING && generatedImage && (
-            <button className="view-result-button" onClick={handleViewResult}>
+            <motion.button
+              key="view-result"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              transition={{ duration: 0.4 }}
+              className="view-result-button"
+              onClick={handleViewResult}
+            >
               👁️ 查看结果
-            </button>
+            </motion.button>
           )}
+        </AnimatePresence>
 
-          {/* 查看结果控件 */}
-          {state === STATES.SHOWING_RESULT && (
-            <div className="result-controls">
-              <button onClick={handleToggleView}>
-                {showGeneratedImage ? '📹 查看摄像头' : '🖼️ 查看生成图'}
-              </button>
-              <button
-                onClick={handleConfirmIdentity}
-                disabled={isSubmitting}
-              >
-                ✅ 确认身份
-              </button>
-            </div>
-          )}
-        </div>
+        {/* 多按钮状态 */}
+        {/* 审阅照片控件 */}
+        {state === STATES.REVIEWING && (
+          <div className="review-controls">
+            <button onClick={handleRetake}>🔄 重拍</button>
+            <button onClick={handleConfirmPhoto}>✅ 确认</button>
+          </div>
+        )}
+
+        {/* 查看结果控件 */}
+        {state === STATES.SHOWING_RESULT && (
+          <div className="result-controls">
+            <button onClick={handleToggleView}>
+              {showGeneratedImage ? '📹 查看摄像头' : '🖼️ 查看生成图'}
+            </button>
+            <button
+              onClick={handleConfirmIdentity}
+              disabled={isSubmitting}
+            >
+              ✅ 确认身份
+            </button>
+          </div>
+        )}
       </div>
+
+      {/* 连接状态提示 */}
+      {state === STATES.CONNECTING && !connectionError && (
+        <div className="connecting-overlay">
+          <p>⏳ 连接中...</p>
+        </div>
+      )}
+
+      {/* 连接失败提示 */}
+      {connectionError && (
+        <div className="connection-error-overlay" style={{
+          position: 'fixed',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          zIndex: 100,
+          background: 'rgba(15, 23, 42, 0.98)',
+          border: '1px solid rgba(34, 211, 238, 0.3)',
+          borderRadius: '8px',
+          padding: '32px',
+          maxWidth: '400px',
+          textAlign: 'center'
+        }}>
+          <p style={{
+            fontFamily: 'VT323, monospace',
+            fontSize: '20px',
+            color: '#f59e0b',
+            marginBottom: '16px'
+          }}>
+            ⚠️ 连接失败
+          </p>
+
+          <p style={{
+            fontFamily: 'VT323, monospace',
+            fontSize: '16px',
+            color: '#94a3b8',
+            lineHeight: 1.6,
+            marginBottom: '24px'
+          }}>
+            无法连接 PIKA 语音系统，请重试。
+          </p>
+
+          <button
+            onClick={() => {
+              setConnectionError(false)
+              setState(STATES.CONNECTING)
+              // 重新触发连接检查
+              window.location.reload()
+            }}
+            style={{
+              fontFamily: 'VT323, monospace',
+              fontSize: '18px',
+              padding: '12px 32px',
+              background: 'transparent',
+              color: '#22d3ee',
+              border: '1px solid #22d3ee',
+              cursor: 'pointer',
+              letterSpacing: '1px'
+            }}
+          >
+            [ ↻ 重试连接 ]
+          </button>
+        </div>
+      )}
+
+      {/* 摄像头失败提示 */}
+      {cameraError && (
+        <div className="camera-error-overlay" style={{
+          position: 'fixed',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          zIndex: 100,
+          background: 'rgba(15, 23, 42, 0.98)',
+          border: '1px solid rgba(34, 211, 238, 0.3)',
+          borderRadius: '8px',
+          padding: '32px',
+          maxWidth: '400px',
+          textAlign: 'center'
+        }}>
+          <p style={{
+            fontFamily: 'VT323, monospace',
+            fontSize: '20px',
+            color: '#f59e0b',
+            marginBottom: '16px'
+          }}>
+            ⚠️ 无法访问摄像头
+          </p>
+
+          <p style={{
+            fontFamily: 'VT323, monospace',
+            fontSize: '16px',
+            color: '#94a3b8',
+            lineHeight: 1.6,
+            marginBottom: '24px'
+          }}>
+            请检查浏览器权限设置，或上传照片继续。
+          </p>
+
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+            <button
+              onClick={() => {
+                setCameraError(false)
+                startCamera()
+              }}
+              style={{
+                fontFamily: 'VT323, monospace',
+                fontSize: '18px',
+                padding: '12px 32px',
+                background: 'transparent',
+                color: '#22d3ee',
+                border: '1px solid #22d3ee',
+                cursor: 'pointer',
+                letterSpacing: '1px'
+              }}
+            >
+              [ ↻ 重试 ]
+            </button>
+
+            <button
+              onClick={() => {
+                // TODO: 切换到上传照片模式
+                // 当前先跳过摄像头，直接允许手动拍照
+                setCameraError(false)
+                setState(STATES.READY_TO_CAPTURE)
+              }}
+              style={{
+                fontFamily: 'VT323, monospace',
+                fontSize: '18px',
+                padding: '12px 32px',
+                background: 'transparent',
+                color: '#64748b',
+                border: '1px solid #64748b',
+                cursor: 'pointer',
+                letterSpacing: '1px'
+              }}
+            >
+              [ 上传照片 ]
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

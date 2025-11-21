@@ -31,8 +31,6 @@ const Stage3Forging = ({ config, globalStyles, onComplete, currentStep, userData
   const [photos, setPhotos] = useState([])      // 用户上传的照片数组(base64 格式),最多 5 张
 
   // === UI 状态 ===
-  const [progress, setProgress] = useState(45)                  // 进度条百分比(45% → 100%)
-  const [statusText, setStatusText] = useState('CONSTRUCTING VESSEL')  // 状态文案(显示在进度条上)
   const [currentMessage, setCurrentMessage] = useState('')      // 当前操作提示文案
 
   // === AI 生成结果 ===
@@ -84,8 +82,6 @@ const Stage3Forging = ({ config, globalStyles, onComplete, currentStep, userData
 
     // === 第 1 步:性格分析 ===
     setPhase('analyzing')
-    setProgress(50)
-    setStatusText('ANALYZING YOUR ESSENCE')  // 文案:"分析你的本质"
     setCurrentMessage('Analyzing personality from photos...')
 
     try {
@@ -95,8 +91,6 @@ const Stage3Forging = ({ config, globalStyles, onComplete, currentStep, userData
       setPersonalityData(personality)
 
       // === 第 2 步:生成自我介绍脚本 ===
-      setProgress(70)
-      setStatusText('CRAFTING YOUR STORY')  // 文案:"编织你的故事"
       setCurrentMessage('Generating your introduction script...')
 
       // 调用 Gemini Chat API 根据性格生成开场白
@@ -106,16 +100,12 @@ const Stage3Forging = ({ config, globalStyles, onComplete, currentStep, userData
 
       // === 第 3 步:视频生成(未来功能,当前跳过) ===
       setPhase('generating')
-      setProgress(85)
-      setStatusText('FORGING YOUR DIGITAL SHELL')  // 文案:"锻造你的数字躯壳"
       setCurrentMessage('Creating your character...')
 
       // TODO: 调用 FAL SeeDance API 生成口型同步视频
       // 当前开发环境跳过,直接进入完成状态
       setTimeout(() => {
         setPhase('complete')
-        setProgress(100)
-        setStatusText('VESSEL COMPLETE')  // 文案:"躯壳完成"
       }, 2000)  // 模拟 2 秒生成时间
 
     } catch (error) {
@@ -131,8 +121,6 @@ const Stage3Forging = ({ config, globalStyles, onComplete, currentStep, userData
       setIntroScript('I am a wanderer in the digital void, seeking connections beyond the screen.')
 
       setPhase('complete')
-      setProgress(100)
-      setStatusText('VESSEL COMPLETE')
     }
   }
 
@@ -190,16 +178,113 @@ const Stage3Forging = ({ config, globalStyles, onComplete, currentStep, userData
         <div className="noise-texture-pika" />
       </div>
 
-      {/* 进度条 */}
-      <div className="status-bar">
-        <span className="status-text">
-          STATUS: ⚡️ {statusText} ({progress}%)
-        </span>
-        <div className="progress-bar">
-          <div
-            className="progress-fill"
-            style={{ width: `${progress}%` }}
-          />
+      {/* 阶段指示器 */}
+      <div className="stage-indicator" style={{
+        position: 'fixed',
+        top: '30px',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        display: 'flex',
+        gap: '20px',
+        alignItems: 'center',
+        zIndex: 10
+      }}>
+        {/* 阶段 1: 照片上传 */}
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          opacity: phase === 'upload' ? 1 : 0.4,
+          transition: 'opacity 0.3s ease'
+        }}>
+          <div style={{
+            fontSize: '24px',
+            marginBottom: '4px'
+          }}>
+            {['analyzing', 'generating', 'complete'].includes(phase) ? '✓' : '📸'}
+          </div>
+          <span style={{
+            fontFamily: 'VT323, monospace',
+            fontSize: '12px',
+            color: '#22d3ee'
+          }}>
+            照片上传
+          </span>
+        </div>
+
+        <div style={{ color: '#64748b' }}>→</div>
+
+        {/* 阶段 2: 性格分析 */}
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          opacity: phase === 'analyzing' ? 1 : ['generating', 'complete'].includes(phase) ? 0.4 : 0.2,
+          transition: 'opacity 0.3s ease'
+        }}>
+          <div style={{
+            fontSize: '24px',
+            marginBottom: '4px'
+          }}>
+            {['generating', 'complete'].includes(phase) ? '✓' : '🧠'}
+          </div>
+          <span style={{
+            fontFamily: 'VT323, monospace',
+            fontSize: '12px',
+            color: '#22d3ee'
+          }}>
+            性格分析
+          </span>
+        </div>
+
+        <div style={{ color: '#64748b' }}>→</div>
+
+        {/* 阶段 3: 视频生成 */}
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          opacity: phase === 'generating' ? 1 : phase === 'complete' ? 0.4 : 0.2,
+          transition: 'opacity 0.3s ease'
+        }}>
+          <div style={{
+            fontSize: '24px',
+            marginBottom: '4px'
+          }}>
+            {phase === 'complete' ? '✓' : '🎬'}
+          </div>
+          <span style={{
+            fontFamily: 'VT323, monospace',
+            fontSize: '12px',
+            color: '#22d3ee'
+          }}>
+            视频生成
+          </span>
+        </div>
+
+        <div style={{ color: '#64748b' }}>→</div>
+
+        {/* 阶段 4: 完成 */}
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          opacity: phase === 'complete' ? 1 : 0.2,
+          transition: 'opacity 0.3s ease'
+        }}>
+          <div style={{
+            fontSize: '24px',
+            marginBottom: '4px'
+          }}>
+            {phase === 'complete' ? '✨' : '⭐'}
+          </div>
+          <span style={{
+            fontFamily: 'VT323, monospace',
+            fontSize: '12px',
+            color: '#22d3ee'
+          }}>
+            完成
+          </span>
         </div>
       </div>
 

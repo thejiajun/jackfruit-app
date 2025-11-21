@@ -2869,3 +2869,426 @@
   animation: pulse 1.5s ease-in-out infinite;
   color: #22d3ee;
 }
+
+/* ========================================
+   Stage2Mirror 重构样式 (2025-01)
+   ======================================== */
+
+/* 主容器 - 全屏居中布局 */
+.stage2-mirror {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+  background: linear-gradient(135deg, #cbd5e1 0%, #64748b 100%);
+  overflow: auto;
+}
+
+/* Mirror 卡片容器 */
+.mirror-container {
+  position: relative;
+  width: min(90vw, 450px);
+  max-height: 75vh;
+  aspect-ratio: 9 / 16;
+  z-index: 10;
+  margin-bottom: 2rem;
+}
+
+/* Mirror 框架 */
+.mirror-frame {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 40px;
+  border: 8px solid #cbd5e1;
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(0, 0, 0, 0.98) 100%);
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  transition: border-color 0.3s ease;
+}
+
+.mirror-frame:hover {
+  border-color: #94a3b8;
+}
+
+/* 顶部栏 */
+.mirror-top-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 16px 20px;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+  z-index: 20;
+}
+
+.mirror-title-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mirror-title {
+  font-family: 'VT323', monospace;
+  font-size: 12px;
+  font-weight: bold;
+  color: rgba(255, 255, 255, 0.9);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+}
+
+.mirror-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'VT323', monospace;
+  font-size: 11px;
+  color: rgba(34, 211, 238, 0.8);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #22d3ee;
+  box-shadow: 0 0 8px rgba(34, 211, 238, 0.8);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.status-text {
+  color: #22d3ee;
+}
+
+/* 视频/图像显示区 */
+.mirror-content {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #000;
+}
+
+/* 对话框（框架内底部） */
+.mirror-dialogue-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid rgba(148, 163, 184, 0.2);
+  z-index: 20;
+  max-height: 30%;
+  overflow-y: auto;
+}
+
+.pika-entity-label {
+  font-family: 'VT323', monospace;
+  font-size: 12px;
+  color: #22d3ee;
+  letter-spacing: 2px;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  opacity: 0.9;
+}
+
+.dialogue-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 100px;
+  overflow-y: auto;
+}
+
+.dialogue-message {
+  font-family: 'VT323', monospace;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.4;
+  word-wrap: break-word;
+}
+
+/* 控制按钮区域（框架外） */
+.mirror-controls-outer {
+  position: relative;
+  width: 100%;
+  max-width: 400px;
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  z-index: 20;
+}
+
+/* 粒子球背景光晕 */
+.controls-orb-background {
+  position: absolute;
+  bottom: -50px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 280px;
+  height: 280px;
+  border-radius: 50%;
+  z-index: -1;
+  opacity: 0.5;
+  filter: blur(20px);
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* 主按钮样式（Push-to-Talk / 拍照） */
+.push-to-talk-button,
+.capture-button {
+  position: relative;
+  z-index: 10;
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  background: rgba(34, 211, 238, 0.15);
+  border: 3px solid rgba(34, 211, 238, 0.6);
+  backdrop-filter: blur(10px);
+  color: #22d3ee;
+  font-family: 'VT323', monospace;
+  font-size: 18px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 8px 32px rgba(34, 211, 238, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.push-to-talk-button:hover,
+.capture-button:hover {
+  background: rgba(34, 211, 238, 0.25);
+  border-color: #22d3ee;
+  transform: scale(1.05);
+  box-shadow: 0 12px 40px rgba(34, 211, 238, 0.5);
+}
+
+.push-to-talk-button:active,
+.capture-button:active {
+  transform: scale(0.95);
+}
+
+/* Push-to-Talk 录音状态 */
+.push-to-talk-button.recording {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: #ef4444;
+  box-shadow: 0 0 40px rgba(239, 68, 68, 0.5);
+  animation: pulse 1s ease-in-out infinite;
+}
+
+.push-to-talk-button.recording:hover {
+  background: rgba(239, 68, 68, 0.3);
+  border-color: #ef4444;
+}
+
+/* 查看结果按钮 */
+.view-result-button {
+  width: 180px;
+  height: 56px;
+  border-radius: 28px;
+  background: rgba(34, 211, 238, 0.2);
+  border: 2px solid rgba(34, 211, 238, 0.6);
+  backdrop-filter: blur(10px);
+  color: #22d3ee;
+  font-family: 'VT323', monospace;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 16px rgba(34, 211, 238, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.view-result-button:hover {
+  background: rgba(34, 211, 238, 0.3);
+  border-color: #22d3ee;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(34, 211, 238, 0.5);
+}
+
+/* 审阅照片按钮组 */
+.review-controls {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+  background: rgba(226, 232, 240, 0.8);
+  backdrop-filter: blur(12px);
+  padding: 8px;
+  border-radius: 9999px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.review-controls button {
+  width: 120px;
+  height: 48px;
+  border-radius: 24px;
+  border: none;
+  background: rgba(34, 211, 238, 0.2);
+  color: #22d3ee;
+  font-family: 'VT323', monospace;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 2px solid rgba(34, 211, 238, 0.4);
+}
+
+.review-controls button:hover {
+  background: rgba(34, 211, 238, 0.3);
+  border-color: #22d3ee;
+  transform: scale(1.05);
+}
+
+.review-controls button:active {
+  transform: scale(0.95);
+}
+
+/* 结果控制按钮组 */
+.result-controls {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.result-controls button {
+  min-width: 140px;
+  height: 48px;
+  border-radius: 24px;
+  border: 2px solid rgba(34, 211, 238, 0.6);
+  background: rgba(34, 211, 238, 0.15);
+  backdrop-filter: blur(10px);
+  color: #22d3ee;
+  font-family: 'VT323', monospace;
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0 20px;
+}
+
+.result-controls button:hover {
+  background: rgba(34, 211, 238, 0.25);
+  border-color: #22d3ee;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(34, 211, 238, 0.4);
+}
+
+.result-controls button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.result-controls button:disabled:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+/* 连接状态提示 */
+.connecting-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.connecting-overlay p {
+  font-family: 'VT323', monospace;
+  font-size: 24px;
+  color: #22d3ee;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .stage2-mirror {
+    padding: 1rem 0.5rem;
+  }
+
+  .mirror-container {
+    width: 95vw;
+    max-height: 70vh;
+  }
+
+  .mirror-frame {
+    border-radius: 32px;
+    border-width: 6px;
+  }
+
+  .push-to-talk-button,
+  .capture-button {
+    width: 140px;
+    height: 140px;
+    font-size: 16px;
+  }
+
+  .controls-orb-background {
+    width: 240px;
+    height: 240px;
+    bottom: -40px;
+  }
+
+  .review-controls button,
+  .result-controls button {
+    min-width: 100px;
+    height: 44px;
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .mirror-top-bar {
+    padding: 12px 16px;
+  }
+
+  .mirror-title {
+    font-size: 10px;
+  }
+
+  .mirror-status {
+    font-size: 9px;
+  }
+
+  .mirror-dialogue-overlay {
+    padding: 16px;
+  }
+
+  .pika-entity-label {
+    font-size: 11px;
+  }
+
+  .dialogue-message {
+    font-size: 13px;
+  }
+
+  .push-to-talk-button,
+  .capture-button {
+    width: 120px;
+    height: 120px;
+    font-size: 15px;
+  }
+}
