@@ -4,22 +4,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a **monorepo** containing three separate applications:
+这是一个 **monorepo** 项目,包含两个独立应用和共享的 Supabase 后端。
 
-### 1. LookGen (Root Directory `/`)
-Social media app for AI-powered photo transformations:
-- Upload identity photos
-- Apply 5 transformation types (better-looking, Japanese style, more male/female, fair skin)
-- Choose from style templates
-- Create multi-photo carousel posts
-- Browse social feeds with likes/comments
-- Built with React Native Web (cross-platform: web, iOS, Android)
+**当前分支**: `feature/pika-integration` - 从 Matrix 绿色主题过渡到 Pika 青蓝色美学
+**重要变更**: LookGen 应用已从 monorepo 中移除 (commit 2cc9b4d)
+**用户要求**: 永远使用云端远程 Supabase,不使用本地 Supabase
 
-### 2. Character App (`/character-app`)
-AI virtual character interaction system:
-- **Onboarding System**: Supports both 7-step and new 4-stage AI-native flows (database-driven)
-  - **4-Stage Architecture**: System Boot → Mirror Guide → Forging → Living Avatar
-  - Integrates Gemini Vision API, Gemini Live API, and video generation
+### 1. Character App (`/character-app`)
+AI 虚拟角色交互系统:
+- **Onboarding System**: Database-driven modular flow supporting both legacy 7-step and new 4-stage AI-native architectures
+  - **4-Stage Architecture** (NEW): System Boot → Mirror Guide → Forging → Living Avatar
+  - **Stage 2 (Mirror Guide)** recently refactored to support:
+    - Real-time auto-frame analysis (every 2s via Gemini Vision)
+    - Continuous AI conversation during camera feed
+    - Background identity generation while conversation continues
+    - Toggle between camera/captured photo/generated image views
+  - Integrates Gemini Vision API, Gemini Live API, and FAL video generation
   - Camera/microphone access, real-time photo analysis, voice conversation
 - View AI characters with dynamic moods/health/statuses
 - Video-based character display with smooth clip transitions
@@ -28,16 +28,16 @@ AI virtual character interaction system:
 - Framer Motion animations for overlays
 - Built with React (traditional web app, not React Native Web)
 
-### 3. Admin Panel (`/admin-app`)
-Management interface for Character Status system:
-- Create and manage AI characters
-- Configure character statuses (mood, health, actions)
-- **Onboarding Configuration**: Visual editor for onboarding flows (steps, visual themes, copy)
-- 3-step AI content generation workflow (Gemini → FAL SeeDrawm → FAL SeeDance)
-- Asset library management (clothing, locations, props)
-- System prompt configuration
-- Drag-and-drop video playlist ordering
-- Built with React + Ant Design
+### 2. Admin Panel (`/admin-app`)
+角色状态系统的管理界面:
+- 创建和管理 AI 角色
+- 配置角色状态(情绪、健康、动作)
+- **Onboarding 配置**: 可视化编辑器用于配置引导流程(步骤、视觉主题、文案)
+- 3 步 AI 内容生成工作流 (Gemini → FAL SeeDrawm → FAL SeeDance)
+- 资产库管理(服饰、地点、道具)
+- 系统提示词配置
+- 拖放式视频播放列表排序
+- 使用 React + Ant Design 构建
 
 ## Quick Commands
 
@@ -47,22 +47,12 @@ Management interface for Character Status system:
 npm install
 
 # Run specific app from root
-npm run dev:character     # Start Character App dev server
+npm run dev:character     # Start Character App dev server (usually http://localhost:5173, may use 5174 if port conflicts)
 npm run dev:admin         # Start Admin Panel dev server
 
 # Build specific app
 npm run build:character
 npm run build:admin
-```
-
-### LookGen (Root App)
-```bash
-npm install              # Install dependencies
-npm run dev              # Start dev server (http://localhost:5173)
-npm run build            # Build for production
-npm run lint             # Run ESLint
-npm run preview          # Preview production build
-npm run clear-cache      # Clear cached transformation results
 ```
 
 ### Character App
@@ -81,50 +71,37 @@ npm run dev              # Runs on different port
 npm run build
 ```
 
-### Supabase (Shared Backend)
+### Supabase (共享后端)
+
+**重要**: 根据用户配置,永远使用远程 Supabase,不使用本地 Supabase。
+
 ```bash
-# Local Development
-supabase start                          # Start local Supabase (postgres, studio, edge functions)
-supabase stop                           # Stop local Supabase
-supabase status                         # Check status and get service URLs
+# Database Migrations (远程)
+supabase db push                        # 推送迁移到远程数据库
+supabase migration list                 # 列出所有迁移
+supabase migration new <name>           # 创建新迁移文件
 
-# Database Migrations
-supabase db push                        # Push migrations to remote
-supabase db reset                       # Reset local database (WARNING: destroys data)
-supabase migration list                 # List all migrations
-supabase migration new <name>           # Create new migration file
-
-# Edge Functions
-supabase functions deploy <name>        # Deploy specific edge function
-supabase functions deploy               # Deploy all functions
-supabase functions list                 # List all edge functions
-supabase functions logs <name> --tail   # Tail function logs in real-time
-supabase functions serve <name>         # Serve function locally for testing
+# Edge Functions (远程)
+supabase functions deploy <name>        # 部署特定 edge function
+supabase functions deploy               # 部署所有 functions
+supabase functions list                 # 列出所有 edge functions
+supabase functions logs <name> --tail   # 实时查看 function 日志
 
 # Utility Scripts
-node scripts/query-looks.js             # Query prompt_items table (debugging templates)
+node scripts/query-looks.js             # 查询 prompt_items 表 (调试模板)
 
-# Edge functions:
-# - transform-image: Single image transformation (LookGen)
-# - batch-transform: Batch image transformation (LookGen)
-# - generate-text-content: Gemini text generation (Character system)
-# - generate-starting-image: FAL SeeDrawm image generation (Character system)
-# - generate-single-video: FAL SeeDance video generation (Character system)
-# - batch-image-generation: Batch image processing (Character system)
-# - voice-chat: Voice chat functionality (Character system)
-# - generate-tts-audio: Text-to-speech audio generation (Character system)
+# 可用的 Edge Functions:
+# - generate-text-content: Gemini 文本生成 (角色系统)
+# - generate-starting-image: FAL SeeDrawm 图像生成 (角色系统)
+# - generate-single-video: FAL SeeDance 视频生成 (角色系统)
+# - batch-image-generation: 批量图像处理 (角色系统)
+# - voice-chat: 语音聊天功能 (角色系统)
+# - generate-tts-audio: 文本转语音生成 (角色系统)
 ```
 
 ## Architecture Overview
 
 ### Technology Stack by App
-
-**LookGen (Root):**
-- React 19 + **React Native Web 0.21** (NOT traditional HTML/React)
-- Zustand 5.0 (state + localStorage persistence)
-- Vite 7.1 build tool
-- Tamagui (UI component library, optional)
-- Cross-platform: web, iOS, Android
 
 **Character App:**
 - React 19 (traditional web app with HTML elements)
@@ -139,89 +116,92 @@ node scripts/query-looks.js             # Query prompt_items table (debugging te
 - @dnd-kit (drag-and-drop for video ordering)
 - React Router DOM 7.9
 
-**Shared Backend:**
+**Shared Backend (远程 Supabase):**
 - Supabase (PostgreSQL, Storage, Edge Functions)
-- AI APIs: FAL (image/video generation), Google Gemini (text generation)
-- Storage buckets: photos, videos, cached_generations
+- AI APIs: FAL (图像/视频生成), Google Gemini (文本生成、视觉分析、实时语音)
+- Storage buckets: photos, videos, cached_generations, onboarding-resources
 
-### Critical Distinction: LookGen Uses React Native Web
+### Important: Pika Theme Transition (Current Work)
 
-**LookGen ONLY**: Code uses React Native components (`View`, `Text`, `TouchableOpacity`, `StyleSheet`) instead of HTML DOM elements.
+**Active branch**: `feature/pika-integration`
 
-```javascript
-// ✅ LookGen (React Native Web)
-import { View, Text, TouchableOpacity } from 'react-native'
+The project is transitioning from Matrix green theme to Pika cyan/blue aesthetic:
+- Primary color: `#22d3ee` (cyan) replacing Matrix green
+- Background: Silver-gray gradient (`#cbd5e1` to `#64748b`)
+- Typography: VT323 monospace font for terminal aesthetic
+- Visual effects: Glitch art, CRT scanlines, chrome/metallic surfaces
 
-// ✅ Character App & Admin Panel (Traditional React)
-<div>, <button>, <h1>, className, etc.
-```
+**Key CSS files:**
+- `character-app/src/pages/Onboarding/styles/onboarding.css` - Main Pika theme styles
+- Utility classes: `.pika-silver-grid`, `.grid-overlay-pika`, `.noise-texture-pika`
+- Component styles: `.mirror-container`, `.mirror-frame`, `.mirror-video`
 
-**When working on LookGen**, you MUST use React Native components. Character App and Admin Panel use normal HTML/React patterns.
+**重要样式规则**:
+- 使用内联样式或 CSS 类 (不要使用 Tailwind CSS - 本项目未安装)
+- 使用 Framer Motion 做动画,不使用 CSS 动画(需要复杂时序时)
+- Mirror 视频/图像元素始终使用 `position: absolute` + `object-fit: cover`
+- 颜色方案:
+  - 主色: `#22d3ee` (cyan)
+  - 背景: `#cbd5e1` 到 `#64748b` (银灰渐变)
+  - 强调色: `#06b6d4` (深青色)
+  - 字体: VT323 (终端风格等宽字体)
 
 ### Project Structure
 ```
-/ (LookGen root app)
-├── src/
-│   ├── pages/               # React Native Web pages
-│   │   ├── Landing.jsx
-│   │   ├── IdentityUpload.jsx
-│   │   ├── EditLook.jsx
-│   │   ├── Templates.jsx
-│   │   ├── CreatePost.jsx
-│   │   ├── Feed.jsx
-│   │   └── Profile.jsx
-│   ├── stores/appStore.js   # Zustand global state
-│   ├── services/            # API services
-│   │   ├── supabaseClient.js
-│   │   ├── supabaseApi.js
-│   │   ├── falApi.js
-│   │   └── configService.js
-│   └── config/              # JSON config files
-│       ├── style_templates.json
-│       └── transformation_prompts.json
-│
-character-app/ (AI Character Viewer)
-├── src/
-│   ├── pages/
-│   │   ├── Onboarding/          # Dual-architecture onboarding system
-│   │   │   ├── OnboardingEngine.jsx  # State machine & step router
-│   │   │   ├── stages/               # NEW: 4-Stage AI-Native flow
-│   │   │   │   ├── Stage1Boot.jsx    # System boot + permissions
-│   │   │   │   ├── Stage2Mirror.jsx  # Camera + Gemini Vision/Live + templates
-│   │   │   │   ├── Stage3Forging.jsx # Photo upload + script generation
-│   │   │   │   └── Stage4Avatar.jsx  # Video reveal + naming + lip-sync
-│   │   │   ├── Step1Splash.jsx       # LEGACY: 7-step flow components
-│   │   │   ├── Step2Guidance.jsx
-│   │   │   ├── Step3Identity.jsx
-│   │   │   ├── Step4Choice.jsx
-│   │   │   ├── Step5Creation.jsx
-│   │   │   ├── Step6Finalizing.jsx
-│   │   │   └── Step7Entry.jsx
-│   │   ├── CharacterList.jsx    # Character selection screen
-│   │   └── CharacterView.jsx    # Main character interaction view
-│   ├── components/character/
-│   │   ├── VideoPlayer.jsx      # Video background with smooth transitions
-│   │   ├── StatusIndicators.jsx # Left sidebar (NOW/HEALTH/MOOD buttons)
-│   │   ├── StatusOverlays.jsx   # Overlay panels (mood selector, etc.)
-│   │   ├── TopBar.jsx           # Top navigation
-│   │   └── BottomSection.jsx    # Action suggestions + navigation
-│   ├── hooks/
-│   │   ├── useOnboardingConfig.js    # Load config from Supabase
-│   │   ├── useStepNavigation.js      # Step transition logic
-│   │   └── useUserData.js            # User data persistence
-│   └── services/
-│       ├── supabaseClient.js
-│       ├── characterService.js       # Character CRUD operations
-│       ├── onboardingService.js      # Onboarding config & session management
-│       ├── geminiService.js          # Gemini Vision & Live API integration
-│       ├── templateService.js        # Template loading from Supabase
-│       ├── videoGenerationService.js # Video generation workflow
-│       ├── envService.js             # Environment variable management
-│       ├── ttsService.js             # Text-to-speech integration
-│       ├── elevenlabsService.js      # ElevenLabs TTS API
-│       ├── voiceService.js           # Voice chat functionality
-│       ├── audioService.js           # Audio playback
-│       └── audioCacheService.js      # IndexedDB audio caching
+/ (Monorepo root)
+├── character-app/                    # Main Character App
+│   ├── src/
+│   │   ├── pages/
+│   │   │   ├── Onboarding/          # Dual-architecture onboarding system
+│   │   │   │   ├── OnboardingEngine.jsx  # State machine & step router
+│   │   │   │   ├── stages/               # NEW: 4-Stage AI-Native flow
+│   │   │   │   │   ├── Stage1Boot.jsx    # System boot + permissions
+│   │   │   │   │   ├── Stage2Mirror.jsx  # Camera + Gemini Vision/Live + conversations
+│   │   │   │   │   ├── Stage3Forging.jsx # Photo upload + script generation
+│   │   │   │   │   └── Stage4Avatar.jsx  # Video reveal + naming + lip-sync
+│   │   │   │   ├── steps/                # LEGACY: 7-step flow components
+│   │   │   │   │   ├── Step1Splash.jsx
+│   │   │   │   │   ├── Step2Guidance.jsx
+│   │   │   │   │   ├── Step3Identity.jsx
+│   │   │   │   │   ├── Step4Choice.jsx
+│   │   │   │   │   ├── Step5Creation.jsx
+│   │   │   │   │   ├── Step6Finalizing.jsx
+│   │   │   │   │   └── Step7Entry.jsx
+│   │   │   │   ├── hooks/                # Onboarding-specific hooks
+│   │   │   │   │   ├── useOnboardingConfig.js
+│   │   │   │   │   ├── useStepNavigation.js
+│   │   │   │   │   └── useUserData.js
+│   │   │   │   └── styles/
+│   │   │   │       └── onboarding.css    # Pika theme + Onboarding styles
+│   │   │   ├── CharacterList.jsx         # Character selection screen
+│   │   │   └── CharacterView.jsx         # Main character interaction view
+│   │   ├── components/
+│   │   │   ├── character/
+│   │   │   │   ├── VideoPlayer.jsx      # Video background with smooth transitions
+│   │   │   │   ├── StatusIndicators.jsx # Left sidebar (NOW/HEALTH/MOOD buttons)
+│   │   │   │   ├── StatusOverlays.jsx   # Overlay panels (mood selector, etc.)
+│   │   │   │   ├── TopBar.jsx           # Top navigation
+│   │   │   │   └── BottomSection.jsx    # Action suggestions + navigation
+│   │   │   └── NovaOrbCanvas.jsx        # Particle visualization (Pika Entity)
+│   │   ├── services/
+│   │   │   ├── supabaseClient.js
+│   │   │   ├── characterService.js       # Character CRUD operations
+│   │   │   ├── onboardingService.js      # Onboarding config & session management
+│   │   │   ├── geminiService.js          # Gemini Vision API (传统 REST)
+│   │   │   ├── geminiLiveService.js      # 🔥 NEW: Gemini Live API (WebSocket 实时音视频)
+│   │   │   ├── imageGenerationService.js # 🔥 NEW: FAL SeeDrawm v4 Edit (Stage2 身份生成)
+│   │   │   ├── storageService.js         # 🔥 NEW: Supabase Storage upload helper
+│   │   │   ├── templateService.js        # Template loading from Supabase
+│   │   │   ├── videoGenerationService.js # Video generation workflow
+│   │   │   ├── ttsService.js             # Text-to-speech integration
+│   │   │   ├── elevenlabsService.js      # ElevenLabs TTS API
+│   │   │   ├── voiceService.js           # Voice chat functionality
+│   │   │   ├── audioService.js           # Audio playback
+│   │   │   ├── audioCacheService.js      # IndexedDB audio caching
+│   │   │   └── envService.js             # Environment variable management
+│   │   ├── public/
+│   │   │   └── audio/                    # Pre-recorded audio files (pika-boot.mp3, etc.)
+│   │   └── vite.config.js
 │
 admin-app/ (Character Admin Panel)
 ├── src/
@@ -248,36 +228,19 @@ supabase/ (Shared backend)
 │   ├── 20251118120000_refactor_onboarding_architecture.sql # Onboarding optimization
 │   ├── 20251119000000_add_4stage_support.sql               # NEW: 4-Stage architecture
 │   └── (storage bucket configs)
-└── functions/
-    ├── transform-image/           # LookGen: FAL image transformation
-    ├── batch-transform/           # LookGen: Batch transformations
-    ├── generate-text-content/     # Character: Gemini prompt generation
-    ├── generate-starting-image/   # Character: FAL SeeDrawm image gen
-    ├── generate-single-video/     # Character: FAL SeeDance video gen
-    ├── batch-image-generation/    # Character: Batch processing
-    ├── voice-chat/                # Character: Voice chat
-    └── generate-tts-audio/        # Character: Text-to-speech
+└── functions/                     # Edge Functions
+    ├── generate-text-content/     # Gemini prompt generation
+    ├── generate-starting-image/   # FAL SeeDrawm image generation
+    ├── generate-single-video/     # FAL SeeDance video generation
+    ├── batch-image-generation/    # Batch processing
+    ├── voice-chat/                # Voice chat functionality
+    └── generate-tts-audio/        # Text-to-speech generation
 
 scripts/ (Utility scripts)
 └── query-looks.js                 # Query prompt_items table for 'looks' category
 ```
 
 ## Data Flow
-
-### LookGen: Photo Transformation Flow
-```
-User uploads photo → Zustand Store → Supabase Storage (photos bucket)
-  ↓
-Supabase Edge Function (transform-image) → FAL API
-  ↓
-Transformed image saved to Supabase Storage
-  ↓
-Display in UI / Store in Zustand
-  ↓
-Create Post → Supabase Database (posts table)
-  ↓
-Feed displays posts
-```
 
 ### Character System: 3-Step Generation Workflow
 ```
@@ -330,21 +293,35 @@ Final step → redirect to /character/{target_character_id}
 - **Tech**: Step 1 → Step 2 (assistant) → Step 3 (identity scan) → Step 4 (choice) → Step 7
 - **Cyberpunk**: Step 1 → Step 4 → Step 5 (AI creation) → Step 6 (loading) → Step 7
 
-### NEW: 4-Stage AI-Native Onboarding Flow
+### NEW: 4-Stage AI-Native Onboarding Flow (2025-01 Latest)
 ```
 User visits Character App root (/) → onboardingService.getActiveConfig()
   ↓
 Stage 1 (System Boot):
-  Glitch art animation + Entity orb visual
-  → "BOOTING SYSTEM..." text sequence
-  → "🔘 INITIATE TALKING" button (triggers camera/mic permission request)
+  Glitch art animation + Entity orb visual (粒子从 0 渐增到 260)
+  → "BOOTING SYSTEM..." text sequence (打字机效果: 30ms/字符)
+  → Greeting: "Hi, I'm PIKA. I am your guide for this experience." (50ms/字符)
+  → Subtext: "You can give me commands or use the camera to let me see you."
+  → "🔘 INITIATE" button (triggers camera/mic permission request)
   ↓
-Stage 2 (Mirror Guide):
-  Camera activation (full-screen) → User captures photo
-  → Gemini Vision API analyzes photo (location, clothing, mood)
-  → Gemini Live API: 2-round voice conversation
-  → AI recommends templates based on analysis
-  → User selects template from carousel
+Stage 2 (Mirror Guide) 🔥 REFACTORED:
+  INTRO Phase:
+    → Camera activates (全屏镜像效果)
+    → AI voice: "I am your guide." (TTS)
+    → AI voice: "Please show me your form." (TTS)
+    → Transition to CONVERSATION phase (最多 20 秒,超时强制进入)
+
+  CONVERSATION Phase:
+    → Gemini Live WebSocket 连接 (实时视频流 0.5 FPS)
+    → AI "看到" 用户并提问 (基于视频流分析)
+    → 用户可随时拍照 → REVIEWING sub-state
+    → REVIEWING: RETAKE/CONFIRM 按钮
+    → CONFIRM → GENERATING sub-state
+    → Background generation (FAL SeeDrawm v4 Edit, ~10-30s, 对话继续)
+    → Generation complete → Border flash + "Your digital form is ready" 通知
+    → User clicks VIEW RESULT → SHOWING_RESULT sub-state
+    → Toggle camera ↔ generated image
+    → CONFIRM IDENTITY button → upload photos → onComplete()
   ↓
 Stage 3 (Forging):
   "Feed me Memory Shards" prompt → User uploads 1-5 photos
@@ -369,33 +346,20 @@ Stage 4 (Living Avatar):
 - Stage 4 (Avatar) → Uses `step_7_entry` column
 
 **Key Technologies**:
-- **Gemini Vision API**: Photo analysis (environment, clothing, mood detection)
-- **Gemini Live API**: Real-time voice conversation (2 rounds max)
-- **FAL SeeDance**: Video generation from starting image + prompts
-- **ElevenLabs**: Text-to-speech for character voice
+- **Gemini Vision API**: Photo analysis (传统 REST,用于静态照片分析)
+- **Gemini Live API** 🔥: Real-time bidirectional audio+video streaming (WebSocket)
+  - Model: `gemini-2.5-flash-native-audio-preview-09-2025`
+  - Voice: `Achird` (Native Audio)
+  - Modality: `AUDIO_TEXT` (返回音频 + 文本转录)
+  - Frame rate: 0.5 FPS (每 2 秒一帧)
+- **FAL SeeDrawm v4 Edit** 🔥: Identity image generation (Stage 2)
+- **FAL SeeDance**: Video generation from starting image + prompts (Stage 3)
+- **ElevenLabs**: Text-to-speech for character voice (fallback)
 - **IndexedDB**: Audio caching via `audioCacheService.js`
 
 See `character-app/New design.md` for detailed UX specs and wireframes.
 
 ## State Management
-
-### LookGen: Zustand Store (appStore.js)
-
-Global state with localStorage persistence:
-- `identityPhoto` - User's uploaded photo
-- `selectedTransformation` - Transformation type (e.g., 'better_looking')
-- `selectedTemplate` - Style template ID ('T1'-'T5')
-- `generatedPhotos` - AI-transformed results array
-- `posts` - Social feed posts
-- `currentUser` - User profile data
-- `cacheMode` - Demo cache toggle (uses cached images instead of FAL API)
-- `transformationPrompts` - Config from Supabase/JSON fallback
-- `styleTemplates` - Templates from Supabase/JSON fallback
-
-Key methods:
-- `loadConfigFromSupabase()` - Loads config with JSON fallback
-- `refreshConfig()` - Refresh after admin updates
-- `setCacheMode()` - Toggle demo cache
 
 ### Character App: React State Only
 
@@ -411,14 +375,7 @@ No global state management library. Uses React hooks:
 - React hooks for CRUD operations
 - No global state library needed
 
-## Database Schema (Supabase)
-
-### LookGen Tables
-- `identity_photos` - User-uploaded photos
-- `posts` - Social feed posts
-- `prompt_configs` - Transformation prompts configuration
-- `app_settings` - Global settings (cache mode)
-- `cached_generations` - Pre-generated images for demo mode
+## Database Schema (远程 Supabase)
 
 ### Character System Tables
 - `ai_characters` - Character profiles (name, avatar, description)
@@ -436,62 +393,12 @@ No global state management library. Uses React hooks:
   - Stores: current_step, user_data (name, photo, choices), session timestamps
 
 ### Storage Buckets
-- `photos` - User identity photos (LookGen)
-- `videos` - Generated video clips (Character system)
-- `cached_generations` - Pre-cached images (demo mode)
-- `onboarding-resources` - Onboarding media (background videos, images, audio)
-
-## Configuration System (LookGen Only)
-
-**Hierarchical loading:**
-1. Try Supabase `prompt_configs` table
-2. Fallback to local JSON files (`src/config/*.json`)
-3. Console logs errors if both fail
-
-**Config files:**
-- `transformation_prompts.json` - 5 transformation types with AI prompts
-- `style_templates.json` - Style templates with metadata
-
-**Cache Mode (Demo Feature):**
-- Toggle in `app_settings` table, synced to appStore
-- When enabled: Uses `cached_generations` table instead of FAL API
-- Real-time sync via Supabase subscription (settingsService.js)
+- `photos` - 用户身份照片
+- `videos` - 生成的视频片段 (角色系统)
+- `cached_generations` - 预缓存图像 (演示模式)
+- `onboarding-resources` - Onboarding 媒体资源 (背景视频、图像、音频)
 
 ## Important Code Patterns
-
-### LookGen: Using Zustand Store
-```javascript
-import useAppStore from '../stores/appStore';
-
-const Component = () => {
-  const identityPhoto = useAppStore((state) => state.identityPhoto);
-  const setIdentityPhoto = useAppStore((state) => state.setIdentityPhoto);
-  return (...);
-};
-```
-
-### LookGen: React Native Web Components (NOT HTML!)
-```javascript
-// ✅ CORRECT for LookGen
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-
-const MyComponent = () => (
-  <View style={styles.container}>
-    <Text style={styles.title}>Hello</Text>
-    <TouchableOpacity style={styles.button}>
-      <Text>Click me</Text>
-    </TouchableOpacity>
-  </View>
-);
-
-// ❌ WRONG for LookGen (but OK for Character App/Admin Panel)
-const MyComponent = () => (
-  <div className="container">
-    <h1>Hello</h1>
-    <button>Click me</button>
-  </div>
-);
-```
 
 ### Character App: Smooth Video Transitions
 ```javascript
@@ -607,48 +514,111 @@ export default function useStepNavigation(config) {
 
 ### Character App: 4-Stage Onboarding Implementation
 
-**Stage 2 (Mirror Guide) - Gemini Integration Pattern:**
+**Stage 2 (Mirror Guide) - REFACTORED Architecture (2025-01):**
+
+**重大架构变更**: Mirror 阶段已完全重构,使用 **Gemini Live API** 实现实时视频流对话:
+
 ```javascript
-// Stage2Mirror.jsx
-import { analyzePhotoWithVision } from '../../../services/geminiService'
-import { loadLookingTemplates } from '../../../services/templateService'
-
+// Stage2Mirror.jsx - NEW architecture with Gemini Live integration
 const Stage2Mirror = ({ config, onComplete }) => {
-  const [phase, setPhase] = useState('camera')
-  // Phases: camera | captured | analyzing | conversation | templates
+  // Main phase: 'INTRO' | 'CONVERSATION'
+  const [phase, setPhase] = useState('INTRO')
 
-  // 1. Camera capture
-  const capturePhoto = () => {
-    const canvas = canvasRef.current
-    const video = videoRef.current
-    canvas.getContext('2d').drawImage(video, 0, 0)
-    const dataUrl = canvas.toDataURL('image/jpeg')
-    setPhotoDataUrl(dataUrl)
-    setPhase('analyzing')
-    analyzePhoto(dataUrl)
+  // Conversation sub-states: 'CAMERA' | 'REVIEWING' | 'GENERATING' | 'SHOWING_RESULT'
+  const [conversationSubState, setConversationSubState] = useState('CAMERA')
+
+  // Mirror display: 'camera' | 'captured_photo' | 'generated_image'
+  const [mirrorDisplayMode, setMirrorDisplayMode] = useState('camera')
+
+  // Generation status: 'idle' | 'generating' | 'completed' | 'failed'
+  const [generationStatus, setGenerationStatus] = useState('idle')
+
+  // 🔥 NEW: Gemini Live WebSocket connection
+  const [geminiLive, setGeminiLive] = useState(null)
+  const [geminiConnected, setGeminiConnected] = useState(false)
+
+  // 🔥 Key Feature 1: Connect to Gemini Live API (Real-time bidirectional audio+video)
+  useEffect(() => {
+    const live = new GeminiLiveService(apiKey, {
+      model: 'models/gemini-2.5-flash-native-audio-preview-09-2025',
+      voiceName: 'Achird', // Native Audio 语音
+      responseModality: 'AUDIO_TEXT', // 返回音频 + 文本转录
+      onText: (text) => {
+        setMessages(prev => [...prev, { role: 'ai', text }])
+      },
+      onConnected: () => setGeminiConnected(true)
+    })
+    live.connect()
+    setGeminiLive(live)
+    return () => live.close()
+  }, [])
+
+  // 🔥 Key Feature 2: Stream video frames to Gemini Live (0.5 FPS)
+  // Replaces old auto-frame analysis - Gemini now "sees" continuously via video stream
+  useEffect(() => {
+    if (phase === 'CONVERSATION' && geminiLive && geminiConnected) {
+      const interval = setInterval(async () => {
+        // 🔥 Send video frame to Gemini Live (no separate Vision API call)
+        await geminiLive.captureAndSendFrame(canvasRef.current, videoRef.current, 0.8)
+      }, 2000) // Every 2 seconds (0.5 FPS)
+      return () => clearInterval(interval)
+    }
+  }, [phase, geminiLive, geminiConnected])
+
+  // 🔥 Key Feature 3: AI asks questions based on what it "sees" in real-time
+  const generateAIQuestion = async () => {
+    // Gemini already "sees" the user via video stream, just prompt it
+    const prompt = "Based on what you see, ask ONE simple, gentle question. Under 10 words."
+    await geminiLive.sendText(prompt)
+    // Audio + text response handled automatically by callbacks
   }
 
-  // 2. Gemini Vision analysis
-  const analyzePhoto = async (photoDataUrl) => {
-    const result = await analyzePhotoWithVision(photoDataUrl)
-    // Result: { location, clothing, mood, recommendation }
-    setAnalysisResult(result)
-    setPhase('conversation') // → Transition to Gemini Live
+  // Key Feature 4: User photo capture → Review → Confirm
+  const handleConfirmPhoto = async () => {
+    setConversationSubState('GENERATING')
+    setMirrorDisplayMode('camera') // Keep showing camera during generation
+
+    // Background generation starts (non-blocking, uses FAL SeeDrawm v4 Edit)
+    triggerBackgroundGeneration()
+
+    // Conversation continues while generating...
   }
 
-  // 3. Gemini Live voice conversation (2 rounds)
-  // TODO: Implement Gemini Live API integration
+  // Key Feature 5: Background generation with notification
+  const triggerBackgroundGeneration = async () => {
+    setGenerationStatus('generating')
+    // 🔥 Uses imageGenerationService.js → generate-starting-image Edge Function
+    const result = await generateWithRetry(capturedPhotoDataUrl, analysis, 3)
+    setGeneratedImageUrl(result.imageUrl)
+    setGenerationStatus('completed')
 
-  // 4. Template selection
-  const loadTemplates = async () => {
-    const templates = await loadLookingTemplates()
-    setTemplates(templates)
-    setPhase('templates')
+    // Notify user: border flash + "Your digital form is ready" button
+    notifyGenerationComplete()
   }
 
-  return (/* UI with phase-based rendering */)
+  // Key Feature 6: Toggle view between camera and generated image
+  const handleViewResult = () => {
+    setMirrorDisplayMode('generated_image')
+    setConversationSubState('SHOWING_RESULT')
+    // Now shows CONFIRM IDENTITY button
+  }
+
+  return (/* UI with state-based rendering */)
 }
 ```
+
+**关键技术改进 (2025-01 重构):**
+- 🔥 **Gemini Live WebSocket**: 替代传统 REST API,实现双向实时音频+视频通信
+- 🔥 **视频流输入**: 每 2 秒发送一帧给 Gemini Live (0.5 FPS),AI 持续"看到"用户
+- 🔥 **移除旧架构**: 不再使用 `analyzePhotoWithVision()` 每次单独分析帧
+- 🔥 **Native Audio**: 使用 Gemini 2.5 Flash Native Audio model (Achird 语音)
+- 🔥 **非阻塞生成**: 对话在 10-30 秒图像生成期间继续进行
+- 🔥 **清晰状态机**: INTRO → CAMERA → REVIEWING → GENERATING → SHOWING_RESULT
+- 🔥 **镜像切换**: camera ↔ captured_photo ↔ generated_image 灵活切换
+
+**新增服务文件:**
+- `geminiLiveService.js` - Gemini Live API WebSocket wrapper
+- `imageGenerationService.js` - FAL SeeDrawm v4 Edit integration for identity generation
 
 **Stage 3 (Forging) - Video Generation Workflow:**
 ```javascript
@@ -703,80 +673,100 @@ node scripts/query-looks.js
 
 ## Environment Variables
 
-All apps share the same `.env` structure:
+所有应用共享相同的 `.env` 结构:
 ```env
-# FAL API (image/video generation)
+# FAL API (图像/视频生成)
 VITE_FAL_API_KEY=your_fal_api_key
 
-# Supabase
+# Supabase (远程云端)
 VITE_SUPABASE_URL=your_supabase_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-VITE_SUPABASE_SERVICE_ROLE_KEY=your_service_role_key  # For admin operations
+VITE_SUPABASE_SERVICE_ROLE_KEY=your_service_role_key  # 管理员操作用
 
-# Google Gemini (text generation, vision, live voice)
+# Google Gemini (文本生成、视觉分析、实时语音)
 VITE_GEMINI_API_KEY=your_gemini_api_key
 ```
 
-**Supabase Edge Functions** also need environment variables:
+**Supabase Edge Functions** 也需要环境变量:
 ```bash
-# In supabase/functions/.env
+# 在 Supabase Dashboard → Settings → Edge Functions → Secrets 中设置
 FAL_API_KEY=your_fal_api_key
 GEMINI_API_KEY=your_gemini_api_key
 ```
 
 ## Deployment
 
-### Vercel (Separate Projects)
+### Vercel (独立项目)
 
-Each app deploys to a separate Vercel project:
+每个应用部署到独立的 Vercel 项目:
 
-**1. LookGen (Root App):**
-```bash
-# Root directory has vercel.json
-vercel --prod
-# URL: https://lookgen.vercel.app
-```
-
-**2. Character App:**
+**1. Character App:**
 ```bash
 cd character-app
-# Has its own vercel.json
+# 有自己的 vercel.json
 vercel --prod
 # URL: https://character-app.vercel.app
 ```
 
-**3. Admin Panel:**
+**2. Admin Panel:**
 ```bash
 cd admin-app
-# Has its own vercel.json
+# 有自己的 vercel.json
 vercel --prod
 # URL: https://admin-panel.vercel.app
 ```
 
-Set environment variables in each Vercel project dashboard separately.
+在每个 Vercel 项目仪表板中分别设置环境变量。
 
-### Supabase Edge Functions
+### Supabase Edge Functions (远程)
 ```bash
-# Deploy all functions
+# 部署所有 functions
 supabase functions deploy
 
-# Or deploy specific function
+# 或部署特定 function
 supabase functions deploy generate-single-video
 
-# View function logs
+# 查看 function 日志
 supabase functions logs generate-single-video --tail
 ```
 
 ## Debugging Tips
 
 ### Console Logging Prefixes
-- **LookGen:** `[appStore]`, `[supabaseApi]`, `[falApi]`
 - **Character App:**
   - Core: `[CharacterView]`, `[VideoPlayer]`, `[characterService]`
   - Onboarding: `[OnboardingEngine]`, `[onboardingService]`, `[Stage1Boot]`, `[Stage2Mirror]`, `[Stage3Forging]`, `[Stage4Avatar]`
-  - Services: `[geminiService]`, `[templateService]`, `[videoGenerationService]`, `[ttsService]`, `[voiceService]`, `[audioCacheService]`
+  - Services: `[geminiService]`, `[GeminiLive]` 🔥, `[imageGenerationService]` 🔥, `[templateService]`, `[videoGenerationService]`, `[ttsService]`, `[voiceService]`, `[audioCacheService]`
 - **Admin Panel:** `[generationService]`, `[statusManagement]`, `[OnboardingConfigManagement]`
 - **Edge Functions:** Check Supabase dashboard logs (`supabase functions logs <name> --tail`)
+
+### Important Development Notes
+
+**🔥 Gemini Live API 使用注意事项:**
+- WebSocket 连接可能不稳定,需要处理重连逻辑
+- 视频帧发送频率建议: 0.5 FPS (每 2 秒),避免超出 API 限制
+- 音频响应是流式的,需要使用回调函数处理
+- 文本转录可能有延迟,不要依赖同步响应
+- 连接超时建议设置为 20 秒,超时后强制进入下一阶段
+
+**🔥 Stage1Boot 音频处理:**
+- 所有音频播放已移除,改用固定时间间隔控制打字机效果
+- Boot 序列: 每字符 30ms
+- Greeting/Subtext: 每字符 50ms
+- 使用本地变量 `isGreetingComplete` 而非状态,避免异步闭包问题
+
+**🔥 Stage2Mirror 状态管理:**
+- 使用 3 层状态机: `phase` (INTRO/CONVERSATION) → `conversationSubState` (CAMERA/REVIEWING/GENERATING/SHOWING_RESULT) → `mirrorDisplayMode` (camera/captured_photo/generated_image)
+- 关键: GENERATING 状态下保持 `mirrorDisplayMode='camera'`,让对话继续
+- 生成完成后显示通知,用户点击 VIEW RESULT 才切换到生成的图像
+- 使用 `isSubmitting` debounce 锁防止重复提交
+
+**🔥 CSS 样式重要规则:**
+- ❌ 项目未安装 Tailwind CSS - 不要使用 Tailwind 类名
+- ✅ 使用内联样式或 `onboarding.css` 中定义的类
+- ✅ Mirror 视频/图像必须使用: `position: absolute; top: 0; left: 0; object-fit: cover;`
+- ✅ Pika 主题颜色: `#22d3ee` (cyan), `#cbd5e1` (银灰背景)
+- ✅ 字体: VT323 (终端等宽字体)
 
 ### Common Issues
 
@@ -787,15 +777,10 @@ supabase functions logs generate-single-video --tail
 - Ensure video files are in Supabase storage `videos` bucket
 
 **Generation workflow stuck:**
-- Check `generation_step` and `generation_status` in character_statuses table
-- View edge function logs: `supabase functions logs <function-name> --tail`
-- Verify FAL API key is set in Supabase edge function secrets
-- Check Gemini API quota limits
-
-**LookGen state persistence issues:**
-- DevTools → Application → LocalStorage → Check `appStore` keys
-- If cache mode not working, check `app_settings` table in Supabase
-- Use React DevTools to inspect Zustand store
+- 检查 character_statuses 表中的 `generation_step` 和 `generation_status`
+- 查看 edge function 日志: `supabase functions logs <function-name> --tail`
+- 在 Supabase Dashboard → Settings → Edge Functions → Secrets 中验证 FAL API key
+- 检查 Gemini API 配额限制
 
 **Smooth video transition not working:**
 - Ensure `videoDuration` matches actual video length (character-app/src/components/character/VideoPlayer.jsx:30)
@@ -822,11 +807,13 @@ supabase functions logs generate-single-video --tail
 - Verify `getUserMedia` is supported in browser
 - Check console for `[Stage2Mirror]` errors
 
-**Stage 2 - Gemini Vision analysis failing:**
+**Stage 2 - Gemini Live connection failing:**
 - Verify `VITE_GEMINI_API_KEY` is set in `.env`
 - Check Gemini API quota/billing at ai.google.dev
-- Ensure photo is properly converted to base64 data URL
-- Check `[geminiService]` console logs for API errors
+- Ensure browser supports WebSocket (check console for WebSocket errors)
+- Check `[GeminiLive]` and `[Stage2Mirror]` console logs for connection errors
+- Verify model name: `models/gemini-2.5-flash-native-audio-preview-09-2025`
+- Try refreshing page if connection drops (WebSocket may need reconnection)
 
 **Stage 2 - Templates not loading:**
 - Run `node scripts/query-looks.js` to verify data exists in Supabase
@@ -849,14 +836,10 @@ supabase functions logs generate-single-video --tail
 ## Key Architecture Decisions
 
 ### Why Monorepo?
-- Shared Supabase backend across all apps
-- Reusable migration scripts and edge functions
-- Consistent environment variable management
-- Independent deployment for each frontend
-
-### Why React Native Web for LookGen Only?
-- LookGen designed for future iOS/Android native apps
-- Character App and Admin Panel are web-only, no need for cross-platform overhead
+- 所有应用共享 Supabase 后端
+- 可重用的迁移脚本和 edge functions
+- 一致的环境变量管理
+- 每个前端独立部署
 
 ### Why No Global State in Character App?
 - Simple data flow (fetch from Supabase → display)
@@ -864,31 +847,31 @@ supabase functions logs generate-single-video --tail
 - Character data is read-only in frontend (writes happen via Admin Panel)
 
 ### Character System: 3-Step Generation
-- **Step 1 (Text):** Gemini generates scene descriptions, overlay text, suggestions
-- **Step 2 (Image):** FAL SeeDrawm generates starting image from assets + mood
-- **Step 3 (Video):** FAL SeeDance converts image + scene prompts → video clips
-- Each step saves results to `character_statuses` table before proceeding
-- Allows resuming if any step fails
+- **Step 1 (文本):** Gemini 生成场景描述、覆盖层文本、建议
+- **Step 2 (图像):** FAL SeeDrawm 从资产 + 情绪生成起始图像
+- **Step 3 (视频):** FAL SeeDance 将图像 + 场景提示转换为视频片段
+- 每步将结果保存到 `character_statuses` 表后再继续
+- 如果任何步骤失败,允许恢复
 
 ### Onboarding System: JSONB-Based Configuration
-- **Database-driven**: All step configs stored in `onboarding_configs` table as JSONB
-- **Modular**: Steps 2-6 are optional; admin enables/disables via null/non-null JSONB
-- **Multi-theme support**: Single codebase serves different visual themes (Philosophy, Tech, Cyberpunk)
-- **No hardcoded flows**: Step routing determined by config presence, not code conditionals
-- **Session tracking**: `onboarding_sessions` allows resuming incomplete flows
-- Inspired by "Second Life", "Pikabot", "Naomi" reference flows (see character-app/Onboarding SPEC.md)
+- **数据库驱动**: 所有步骤配置作为 JSONB 存储在 `onboarding_configs` 表中
+- **模块化**: 步骤 2-6 是可选的;管理员通过 null/非 null JSONB 启用/禁用
+- **多主题支持**: 单一代码库服务不同视觉主题 (Philosophy, Tech, Cyberpunk, Pika)
+- **无硬编码流程**: 步骤路由由配置存在性决定,而非代码条件判断
+- **会话跟踪**: `onboarding_sessions` 允许恢复未完成的流程
+- 灵感来自 "Second Life", "Pikabot", "Naomi" 参考流程 (见 character-app/New design.md)
 
-### 4-Stage AI-Native Onboarding Architecture
-- **Dual architecture support**: Codebase supports both 7-step (legacy) and 4-stage (new) flows
-- **Backward compatible**: 4-stage uses existing DB columns (`step_1_splash`, `step_3_identity_input`, etc.)
-- **AI-first experience**: Heavy integration with Gemini Vision, Gemini Live, FAL video generation
-- **Permission flow**: Stage 1 (Boot) handles camera/mic permissions before interactive stages
-- **Latency management**: Stage 3 (Forging) includes progress animations to manage 30-60s video generation wait
-- **State-driven UI**: Each stage uses phase-based state machines (e.g., camera → analyzing → conversation → templates)
-- **IndexedDB caching**: Audio files cached locally via `audioCacheService.js` to reduce API calls
-- **Design philosophy**: "The app is alive" - focus on immersion, not traditional form-filling
-  - Boot sequence with glitch art establishes "system" metaphor
-  - Mirror stage feels like AI is "seeing" and "talking" to user
-  - Forging stage: "Feeding Memory Shards" instead of "Upload Photos"
-  - Avatar stage: Character "comes alive" with reveal + lip-sync videos
-- See `character-app/New design.md` for detailed UX rationale and wireframes
+### 4-Stage AI-Native Onboarding Architecture (Pika 主题)
+- **双架构支持**: 代码库同时支持 7 步 (传统) 和 4 阶段 (新) 流程
+- **向后兼容**: 4 阶段使用现有 DB 列 (`step_1_splash`, `step_3_identity_input`, 等)
+- **AI 优先体验**: 深度集成 Gemini Vision, Gemini Live, FAL 视频生成
+- **权限流程**: Stage 1 (Boot) 在交互阶段前处理相机/麦克风权限
+- **延迟管理**: Stage 3 (Forging) 包含进度动画来管理 30-60 秒的视频生成等待
+- **状态驱动 UI**: 每个阶段使用基于阶段的状态机 (例如: camera → analyzing → conversation → templates)
+- **IndexedDB 缓存**: 通过 `audioCacheService.js` 本地缓存音频文件以减少 API 调用
+- **设计理念**: "The app is alive" - 专注于沉浸感,而非传统表单填写
+  - Boot 序列用故障艺术建立 "系统" 隐喻
+  - Mirror 阶段让 AI "看到" 并 "与" 用户对话
+  - Forging 阶段: "注入记忆碎片" 而非 "上传照片"
+  - Avatar 阶段: 角色通过揭示 + 口型同步视频 "苏醒"
+- 详见 `character-app/New design.md` 了解详细的 UX 原理和线框图

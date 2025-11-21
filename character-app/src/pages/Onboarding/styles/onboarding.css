@@ -20,6 +20,16 @@
   overflow: hidden;
 }
 
+/* Stage 2 Mirror - 使用 flexbox 居中布局 */
+.stage2-mirror {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  min-height: 0; /* 允许 flex 子元素收缩 */
+}
+
 /* ========================================
    背景层
    ======================================== */
@@ -96,6 +106,240 @@
 
 @keyframes blink {
   50% { border-color: transparent; }
+}
+
+/* ========================================
+   Stage 2: Mirror - NEW STYLES
+   ======================================== */
+
+/* Mirror Dialogue Container (inside mirror at bottom) */
+.mirror-dialogue-container {
+  position: absolute;
+  bottom: 32px;
+  left: 24px;
+  right: 24px;
+  z-index: 20;
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: flex-start;
+  gap: 12px;
+  pointer-events: none;
+}
+
+.dialogue-message {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+}
+
+.dialogue-label {
+  font-size: 10px;
+  color: rgba(103, 232, 249, 0.8);
+  font-family: 'VT323', monospace;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.dialogue-text {
+  color: white;
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 1.3;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
+  margin: 0;
+}
+
+/* Border Flash Animation */
+.mirror-container.border-flash .mirror-frame {
+  animation: borderFlash 2s ease-in-out;
+}
+
+@keyframes borderFlash {
+  0%, 100% {
+    box-shadow: 0 0 0 rgba(103, 232, 249, 0);
+  }
+  25%, 75% {
+    box-shadow: 0 0 40px rgba(103, 232, 249, 0.8),
+                0 0 80px rgba(103, 232, 249, 0.4),
+                inset 0 0 40px rgba(103, 232, 249, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 60px rgba(103, 232, 249, 1),
+                0 0 120px rgba(103, 232, 249, 0.6),
+                inset 0 0 60px rgba(103, 232, 249, 0.5);
+  }
+}
+
+/* Generation Notification (inside mirror, top) */
+.generation-notification {
+  position: absolute;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.8);
+  border: 1px solid rgba(103, 232, 249, 0.5);
+  border-radius: 12px;
+  padding: 16px 24px;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  backdrop-filter: blur(10px);
+}
+
+.generation-notification p {
+  margin: 0;
+  font-size: 14px;
+  color: rgba(103, 232, 249, 1);
+  font-family: 'VT323', monospace;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.btn-view-result {
+  background: rgba(103, 232, 249, 0.2);
+  border: 1px solid rgba(103, 232, 249, 0.8);
+  color: rgba(103, 232, 249, 1);
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-family: 'VT323', monospace;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-view-result:hover {
+  background: rgba(103, 232, 249, 0.4);
+  box-shadow: 0 0 20px rgba(103, 232, 249, 0.6);
+}
+
+/* Toggle Mirror Button (inside mirror) */
+.btn-toggle-mirror {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  cursor: pointer;
+  z-index: 25;
+  backdrop-filter: blur(5px);
+  transition: all 0.3s ease;
+}
+
+.btn-toggle-mirror:hover {
+  background: rgba(0, 0, 0, 0.8);
+  border-color: rgba(103, 232, 249, 0.8);
+  color: rgba(103, 232, 249, 1);
+}
+
+/* Confirm Identity Button (inside mirror, bottom center) */
+.btn-confirm-identity {
+  position: absolute;
+  bottom: 180px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, rgba(103, 232, 249, 0.3), rgba(103, 232, 249, 0.1));
+  border: 2px solid rgba(103, 232, 249, 0.8);
+  color: rgba(103, 232, 249, 1);
+  padding: 16px 32px;
+  border-radius: 12px;
+  font-family: 'VT323', monospace;
+  font-size: 18px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  cursor: pointer;
+  z-index: 25;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 20px rgba(103, 232, 249, 0.3);
+  transition: all 0.3s ease;
+}
+
+.btn-confirm-identity:hover {
+  background: linear-gradient(135deg, rgba(103, 232, 249, 0.5), rgba(103, 232, 249, 0.3));
+  box-shadow: 0 6px 30px rgba(103, 232, 249, 0.6);
+  transform: translateX(-50%) scale(1.05);
+}
+
+/* Retry Generation Button */
+.btn-retry-generation {
+  position: absolute;
+  bottom: 180px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(239, 68, 68, 0.2);
+  border: 2px solid rgba(239, 68, 68, 0.8);
+  color: rgba(239, 68, 68, 1);
+  padding: 12px 24px;
+  border-radius: 10px;
+  font-family: 'VT323', monospace;
+  font-size: 16px;
+  cursor: pointer;
+  z-index: 25;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+
+.btn-retry-generation:hover {
+  background: rgba(239, 68, 68, 0.4);
+  box-shadow: 0 4px 20px rgba(239, 68, 68, 0.5);
+}
+
+/* Generation Progress (outside mirror, bottom) */
+.generation-progress {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  margin-top: 32px;
+}
+
+.progress-text {
+  font-size: 16px;
+  color: rgba(103, 232, 249, 0.9);
+  font-family: 'VT323', monospace;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin: 0;
+  text-shadow: 0 0 10px rgba(103, 232, 249, 0.5);
+}
+
+/* Loading Spinner */
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(103, 232, 249, 0.2);
+  border-top-color: rgba(103, 232, 249, 1);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Review Button Labels */
+.review-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-label {
+  font-size: 10px;
+  font-family: 'VT323', monospace;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  opacity: 0.8;
 }
 
 /* ========================================
@@ -353,13 +597,47 @@
   }
 }
 
-/* Stage 1 专用故障容器 */
+/* Pika 银色方格背景 */
+.pika-silver-grid {
+  background: radial-gradient(ellipse at center, #cbd5e1 0%, #94a3b8 50%, #64748b 100%);
+}
+
+/* Pika 方格网格叠加层 */
+.grid-overlay-pika {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: linear-gradient(to right, #000000 1px, transparent 1px),
+                    linear-gradient(to bottom, #000000 1px, transparent 1px);
+  background-size: 40px 40px;
+  opacity: 0.03;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Pika 噪点纹理 */
+.noise-texture-pika {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  opacity: 0.05;
+  pointer-events: none;
+  z-index: 50;
+}
+
+/* Stage 1 专用故障容器 - 透明背景，叠加在银色背景上 */
 .stage1-boot .glitch-container {
   width: 100%;
   height: 100%;
   position: relative;
   overflow: hidden;
-  background: #000;
+  background: transparent;
+  z-index: 2;
 }
 
 /* CRT 扫描线效果（增强版） */
@@ -484,7 +762,7 @@
 .boot-sequence {
   font-family: 'VT323', monospace;
   font-size: 18px;
-  color: #22d3ee;
+  color: #22d3ee; /* 统一为 cyan */
   text-shadow: 0 0 10px rgba(34, 211, 238, 0.5);
   margin-bottom: 40px;
   text-align: left;
@@ -517,24 +795,25 @@
   pointer-events: none; /* 不拦截鼠标事件，让按钮可点击 */
 }
 
-/* 问候语（在 boot-sequence 内） */
+/* 问候语（在 boot-sequence 内） - 使用 cyan 强调 */
 .entity-greeting {
   font-family: 'VT323', monospace;
   font-size: 28px;
-  color: #22d3ee;
+  color: #22d3ee; /* Pika cyan */
   text-shadow: 0 0 20px rgba(34, 211, 238, 0.6);
   margin: 20px 0 10px 0;
   letter-spacing: 2px;
   font-weight: normal;
 }
 
-/* 副标题（在 boot-sequence 内） */
+/* 副标题（在 boot-sequence 内） - 使用 cyan */
 .entity-subtext {
   font-family: 'VT323', monospace;
   font-size: 28px;
-  color: #22d3ee;
+  color: #22d3ee; /* Pika cyan */
   opacity: 0.7;
   margin: 5px 0 10px 0;
+  white-space: pre-line; /* 支持换行符 */
 }
 
 /* 打字机效果文本 */
@@ -544,12 +823,12 @@
   overflow: visible;
 }
 
-/* 光标闪烁动画 */
+/* 光标闪烁动画 - 统一为 cyan */
 .cursor-blink {
   display: inline-block;
   margin-left: 2px;
   animation: cursor-blink-anim 0.8s step-end infinite;
-  color: #22d3ee;
+  color: #22d3ee; /* 统一为 cyan */
 }
 
 @keyframes cursor-blink-anim {
@@ -889,6 +1168,553 @@
   bottom: -2px;
   right: -2px;
   border-width: 0 4px 4px 0;
+}
+
+/* ========================================
+   PIKA Mirror 容器结构 - Stage 2 重构版
+   ======================================== */
+
+/* Pika 银色方格背景 */
+.pika-silver-background {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at center,
+    #cbd5e1 0%,
+    #94a3b8 50%,
+    #64748b 100%
+  );
+  z-index: 0;
+}
+
+/* Mirror 容器 - 居中,带透视，手机屏幕比例 */
+.mirror-container {
+  position: relative;
+  width: min(90vw, 450px); /* 与 Pika 相同尺寸 */
+  height: auto;
+  max-height: 75vh;
+  aspect-ratio: 9 / 16; /* 手机屏幕比例 */
+  perspective: 1000px;
+  z-index: 10;
+  margin: 0 auto; /* 水平居中 */
+}
+
+/* Mirror 镜框 - 3D 容器 + Pika 银色边框 */
+.mirror-frame {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 40px;
+  border: 8px solid #cbd5e1; /* Pika 银色 */
+  overflow: hidden;
+  transform-style: preserve-3d;
+  box-shadow:
+    0 30px 60px -10px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  background: #000;
+  transition: border-color 0.3s ease;
+  ring: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.mirror-frame:hover {
+  border-color: #94a3b8; /* Pika 深银色 */
+}
+
+/* Mirror 内容区 */
+.mirror-content {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #000;
+}
+
+/* Intro 阶段 - 空白镜子 */
+.mirror-intro-phase {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(0, 0, 0, 0.98) 100%);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+/* 🔥 AI 对话叠加层 - 在镜子内部底部显示（参考 Pika 设计） */
+.mirror-dialogue-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 24px 20px;
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.85) 0%,
+    rgba(0, 0, 0, 0.6) 60%,
+    transparent 100%
+  );
+  backdrop-filter: blur(8px);
+  z-index: 30;
+  pointer-events: none;
+}
+
+/* Intro 阶段的对话样式 - 居中显示 */
+.mirror-dialogue-overlay.intro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  text-align: center;
+  padding: 32px 24px;
+}
+
+/* 对话文本样式 */
+.dialogue-text {
+  font-family: 'VT323', monospace;
+  color: #22d3ee;
+  text-shadow: 0 0 10px rgba(34, 211, 238, 0.5);
+  margin: 0;
+  line-height: 1.6;
+}
+
+.dialogue-text.primary {
+  font-size: 18px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  margin-bottom: 12px;
+}
+
+.dialogue-text.secondary {
+  font-size: 14px;
+  color: #94a3b8;
+  opacity: 0.9;
+  margin-bottom: 8px;
+}
+
+.dialogue-text.hint {
+  font-size: 12px;
+  color: #fbbf24;
+  text-shadow: 0 0 8px rgba(251, 191, 36, 0.4);
+  margin-top: 8px;
+}
+
+/* Mirror 顶部控制栏 */
+.mirror-top-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 16px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.8), transparent);
+  z-index: 30;
+  pointer-events: auto;
+}
+
+/* 左上角标题区 */
+.mirror-title-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mirror-title {
+  font-family: 'VT323', monospace;
+  font-size: 12px;
+  font-weight: bold;
+  color: rgba(255, 255, 255, 0.9);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.mirror-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  box-shadow: 0 0 5px currentColor;
+}
+
+.status-dot.online {
+  background: #4ade80; /* 绿色在线 */
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.status-dot.processing {
+  background: #fbbf24; /* 黄色处理中 */
+  animation: ping 1s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@keyframes ping {
+  75%, 100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+.status-text {
+  font-family: 'VT323', monospace;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.8);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+/* 右上角控制按钮 */
+.mirror-controls-top {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mirror-control-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.mirror-control-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: scale(1.1);
+}
+
+/* Intro 光球容器 - 缩小显示 */
+.intro-orb-container {
+  width: 200px;
+  height: 200px;
+  margin-bottom: 40px;
+  position: relative;
+  z-index: 10;
+}
+
+/* Intro 对话消息容器 */
+.intro-messages {
+  position: absolute;
+  bottom: 30px;
+  left: 20px;
+  right: 20px;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* 单条 Intro 消息 */
+.intro-message {
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(34, 211, 238, 0.3);
+  border-radius: 12px;
+  padding: 16px 20px;
+}
+
+.intro-message-label {
+  font-family: 'VT323', monospace;
+  font-size: 10px;
+  color: rgba(34, 211, 238, 0.8);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.intro-message-text {
+  font-family: 'VT323', monospace;
+  font-size: 20px;
+  color: #fff;
+  margin: 0;
+  line-height: 1.4;
+  text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+}
+
+/* Mirror 内的视频/图片 */
+.mirror-video,
+.mirror-image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* 使用 cover 填充整个镜子，保持比例 */
+  display: block;
+  z-index: 0;
+}
+
+/* 🔥 底部控制区域 - 在镜子外部（参考 Pika 设计） */
+.bottom-controls {
+  position: fixed;
+  bottom: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  z-index: 50;
+}
+
+/* Entity 可视化区域 - 镜子外部 */
+.entity-visual-external {
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Review Controls - captured 阶段的 RETAKE/CONFIRM 按钮（参考 Pika） */
+.review-controls {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+  background: rgba(226, 232, 240, 0.8);
+  backdrop-filter: blur(12px);
+  padding: 8px;
+  border-radius: 9999px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.review-btn {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 1px solid;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 24px;
+}
+
+.retake-btn-external {
+  background: white;
+  border-color: #cbd5e1;
+  color: #ef4444;
+}
+
+.retake-btn-external:hover {
+  background: #fef2f2;
+  border-color: #ef4444;
+}
+
+.confirm-btn-external {
+  background: #22d3ee;
+  border-color: #06b6d4;
+  color: white;
+  box-shadow: 0 4px 12px rgba(34, 211, 238, 0.3);
+}
+
+.confirm-btn-external:hover {
+  background: #06b6d4;
+}
+
+.btn-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+}
+
+/* Pika 风格拍照按钮 - 双层圆形快门设计 */
+.capture-btn-pika {
+  /* 移除 absolute 定位，现在在 flex 容器内 */
+  position: relative;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: #e2e8f0; /* 浅灰色背景 */
+  border: 6px solid #cbd5e1; /* 银色边框 */
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.capture-btn-pika:hover {
+  box-shadow: 0 10px 32px rgba(34, 211, 238, 0.4);
+  border-color: #22d3ee;
+}
+
+.capture-btn-inner {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 2px solid #94a3b8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  transition: all 0.3s ease;
+}
+
+.capture-btn-pika:hover .capture-btn-inner {
+  border-color: #22d3ee;
+  background: rgba(34, 211, 238, 0.1);
+}
+
+.capture-icon {
+  font-size: 24px;
+  transition: transform 0.3s ease;
+}
+
+.capture-btn-pika:hover .capture-icon {
+  transform: scale(1.1);
+}
+
+/* 确认/重拍按钮容器 - 在 Mirror 内部 - Pika 风格 */
+.mirror-controls-overlay {
+  position: absolute;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 12px;
+  z-index: 20;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  padding: 8px;
+  border-radius: 24px;
+}
+
+.mirror-controls-overlay .confirm-btn,
+.mirror-controls-overlay .retake-btn {
+  padding: 10px 28px;
+  font-size: 16px;
+  border-radius: 20px;
+  letter-spacing: 1px;
+  font-family: 'VT323', monospace;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.mirror-controls-overlay .confirm-btn {
+  background: rgba(34, 211, 238, 0.9);
+  color: #fff;
+  border: 2px solid #22d3ee;
+  box-shadow: 0 4px 12px rgba(34, 211, 238, 0.3);
+}
+
+.mirror-controls-overlay .confirm-btn:hover {
+  background: #22d3ee;
+  box-shadow: 0 6px 20px rgba(34, 211, 238, 0.5);
+  transform: scale(1.05);
+}
+
+.mirror-controls-overlay .retake-btn {
+  background: rgba(255, 255, 255, 0.9);
+  color: #ef4444; /* 红色文字 */
+  border: 2px solid #cbd5e1;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.mirror-controls-overlay .retake-btn:hover {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: #ef4444;
+  box-shadow: 0 6px 20px rgba(239, 68, 68, 0.3);
+  transform: scale(1.05);
+}
+
+/* Mirror 轮播包装器 - 填充整个 Mirror 内容区 */
+.mirror-carousel-wrapper {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* UI 叠加层 - 在 Mirror 外部 */
+.ui-overlays {
+  position: absolute;
+  bottom: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90%;
+  max-width: 600px;
+  z-index: 25;
+  pointer-events: none;
+}
+
+.ui-overlays .ai-dialogue {
+  pointer-events: auto;
+  background: rgba(0, 0, 0, 0.8);
+  border: 1px solid rgba(34, 211, 238, 0.3);
+  border-radius: 12px;
+  padding: 20px;
+  backdrop-filter: blur(10px);
+}
+
+.ui-overlays .ai-message {
+  font-family: 'VT323', monospace;
+  font-size: 20px;
+  color: #22d3ee;
+  margin: 8px 0;
+  text-shadow: 0 0 10px rgba(34, 211, 238, 0.5);
+  animation: fadeIn 0.8s ease-out;
+}
+
+/* 响应式调整 - Stage 2 Mirror */
+@media (max-width: 768px) {
+  .mirror-container {
+    width: min(90vw, 380px); /* 手机端稍微宽一点 */
+    max-height: 85vh; /* 手机端允许更高 */
+  }
+
+  .capture-btn-overlay {
+    font-size: 16px;
+    padding: 10px 24px;
+    bottom: 20px; /* 手机端位置更靠下 */
+  }
+
+  .mirror-controls-overlay {
+    bottom: 20px;
+  }
+
+  .ui-overlays {
+    width: 95%;
+    bottom: 80px; /* 调整 AI 对话位置 */
+  }
+
+  .ui-overlays .ai-message {
+    font-size: 16px;
+  }
+}
+
+/* 小屏幕手机 */
+@media (max-width: 480px) {
+  .mirror-container {
+    width: min(92vw, 360px);
+    max-height: 90vh;
+  }
+
+  .mirror-frame {
+    border-width: 6px; /* 边框稍微细一点 */
+    border-radius: 32px; /* 圆角稍微小一点 */
+  }
 }
 
 /* ========================================
@@ -1781,4 +2607,265 @@
     #0f172a 50%,
     #020617 100%
   );
+}
+
+/* ========================================
+   轮播式模板选择 - Mirror Carousel
+   ======================================== */
+
+/* 轮播容器 */
+.mirror-carousel-container {
+  position: absolute;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90%;
+  max-width: 500px;
+  z-index: 30;
+  perspective: 1000px; /* 🔥 3D 透视效果 */
+}
+
+/* 轮播主体 */
+.mirror-carousel {
+  position: relative;
+  width: 100%;
+  height: 500px;
+  overflow: hidden;
+  border-radius: 24px;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(20px);
+  border: 2px solid rgba(34, 211, 238, 0.3);
+  box-shadow: 0 20px 60px -10px rgba(0, 0, 0, 0.5);
+  transition: border-color 0.3s ease;
+}
+
+.mirror-carousel:hover {
+  border-color: rgba(34, 211, 238, 0.6);
+}
+
+/* 轮播轨道 */
+.carousel-track {
+  display: flex;
+  height: 100%;
+  width: 100%;
+  touch-action: pan-y; /* 防止横向滚动冲突 */
+}
+
+/* 单个卡片 */
+.carousel-card {
+  min-width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s ease;
+}
+
+/* 卡片图片容器 */
+.card-image-container {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background: #000;
+}
+
+.card-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* 卡片渐变遮罩 */
+.card-gradient {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 50%;
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.9) 0%,
+    rgba(0, 0, 0, 0.6) 50%,
+    transparent 100%
+  );
+  pointer-events: none;
+}
+
+/* 卡片信息 */
+.card-info {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 24px;
+  color: white;
+  z-index: 10;
+}
+
+.card-title {
+  font-family: 'VT323', monospace;
+  font-size: 28px;
+  margin: 0 0 8px 0;
+  color: #22d3ee;
+  text-shadow: 0 0 10px rgba(34, 211, 238, 0.5);
+  letter-spacing: 2px;
+}
+
+.card-description {
+  font-family: 'VT323', monospace;
+  font-size: 18px;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.4;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+/* 左右箭头 - Pika 风格（银白色） */
+.carousel-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 48px;
+  height: 48px;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  border: 2px solid rgba(203, 213, 225, 0.8);
+  border-radius: 50%;
+  color: #475569; /* 深灰色文字 */
+  font-size: 28px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  z-index: 50;
+  user-select: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.carousel-arrow.left {
+  left: -16px;
+}
+
+.carousel-arrow.right {
+  right: -16px;
+}
+
+.carousel-arrow:hover {
+  background: rgba(255, 255, 255, 0.95);
+  border-color: #22d3ee; /* Hover 时显示 cyan 边框 */
+  color: #22d3ee;
+  transform: translateY(-50%) scale(1.1);
+  box-shadow: 0 6px 20px rgba(34, 211, 238, 0.3);
+}
+
+.carousel-arrow:active {
+  transform: translateY(-50%) scale(0.95);
+}
+
+/* 移动端箭头位置调整 */
+@media (max-width: 768px) {
+  .carousel-arrow {
+    width: 40px;
+    height: 40px;
+    font-size: 24px;
+  }
+
+  .carousel-arrow.left {
+    left: -12px;
+  }
+
+  .carousel-arrow.right {
+    right: -12px;
+  }
+}
+
+/* 指示器圆点 - Pika 风格 */
+.carousel-indicators {
+  position: absolute;
+  bottom: -40px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 10px;
+  z-index: 10;
+}
+
+.indicator-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(148, 163, 184, 0.4); /* 银灰色 */
+  border: 1px solid rgba(203, 213, 225, 0.6);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  padding: 0;
+}
+
+.indicator-dot:hover {
+  background: rgba(148, 163, 184, 0.7);
+  border-color: #94a3b8;
+  transform: scale(1.2);
+}
+
+.indicator-dot.active {
+  background: #22d3ee; /* 当前选中时用 cyan */
+  border-color: #22d3ee;
+  box-shadow: 0 0 10px rgba(34, 211, 238, 0.5);
+  transform: scale(1.3);
+}
+
+/* 提示文字 */
+.carousel-hint {
+  position: absolute;
+  bottom: -70px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'VT323', monospace;
+  font-size: 14px;
+  color: rgba(34, 211, 238, 0.6);
+  text-align: center;
+  white-space: nowrap;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+/* 生成中标记 */
+.generating-badge {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: rgba(34, 211, 238, 0.9);
+  backdrop-filter: blur(10px);
+  padding: 8px 16px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'VT323', monospace;
+  font-size: 14px;
+  color: #0f172a;
+  font-weight: bold;
+  box-shadow: 0 4px 12px rgba(34, 211, 238, 0.3);
+  z-index: 15;
+}
+
+.generating-badge .loading-spinner.small {
+  width: 16px;
+  height: 16px;
+  border-width: 2px;
+  margin: 0;
+}
+
+/* AI对话区域调整 */
+.ai-dialogue {
+  margin-bottom: 20px;
+}
+
+.generation-hint {
+  animation: pulse 1.5s ease-in-out infinite;
+  color: #22d3ee;
 }

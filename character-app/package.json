@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@google/genai": "^1.30.0",
     "@supabase/supabase-js": "^2.81.1",
     "framer-motion": "^12.23.24",
     "idb": "^8.0.3",

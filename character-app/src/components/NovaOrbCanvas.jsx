@@ -66,7 +66,7 @@ export const NovaOrbCanvas = ({
       })
     }
     stateRef.current.particles = particles
-    console.log(`[NovaOrbCanvas] Initialized ${particleCount} particles`)
+    // console.log(`[NovaOrbCanvas] Initialized ${particleCount} particles`)
   }
 
   // 调整 Canvas 分辨率
@@ -86,7 +86,7 @@ export const NovaOrbCanvas = ({
     stateRef.current.cx = width / 2
     stateRef.current.cy = height / 2
 
-    console.log(`[NovaOrbCanvas] Canvas resized: ${width}x${height}`)
+    // console.log(`[NovaOrbCanvas] Canvas resized: ${width}x${height}`)
   }
 
   // 渲染帧
@@ -257,14 +257,14 @@ export const NovaOrbCanvas = ({
     const handleResize = () => resizeCanvas()
     window.addEventListener('resize', handleResize)
 
-    console.log('[NovaOrbCanvas] Started rendering loop')
+    // console.log('[NovaOrbCanvas] Started rendering loop')
 
     return () => {
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current)
       }
       window.removeEventListener('resize', handleResize)
-      console.log('[NovaOrbCanvas] Stopped rendering loop')
+      // console.log('[NovaOrbCanvas] Stopped rendering loop')
     }
   }, [particleCount])
 
@@ -288,12 +288,12 @@ export const NovaOrbCanvas = ({
   // 同步 activeParticleCount 和 enableRotation
   useEffect(() => {
     stateRef.current.activeParticleCount = activeParticleCount
-    console.log('[NovaOrbCanvas] activeParticleCount updated to:', activeParticleCount)
+    // console.log('[NovaOrbCanvas] activeParticleCount updated to:', activeParticleCount)
   }, [activeParticleCount])
 
   useEffect(() => {
     stateRef.current.enableRotation = enableRotation
-    console.log('[NovaOrbCanvas] enableRotation updated to:', enableRotation)
+    // console.log('[NovaOrbCanvas] enableRotation updated to:', enableRotation)
   }, [enableRotation])
 
   return (
