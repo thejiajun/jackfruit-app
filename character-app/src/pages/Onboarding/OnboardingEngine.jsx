@@ -21,12 +21,13 @@
  * Stage 4: Living Avatar - Revealing 视频 + 命名 + Lip-Sync 视频 + Transition 传送门
  */
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useOnboardingConfig } from './hooks/useOnboardingConfig'
 import { useStepNavigation } from './hooks/useStepNavigation'
 import { useUserData } from './hooks/useUserData'
 import { MobileFrame } from '../../components/layout/MobileFrame'
+import GeminiLiveService from '../../services/geminiLiveService'
 
 // 导入所有 Stage 组件（新的 4-stage 架构）
 import Stage1Boot from './stages/Stage1Boot'
@@ -81,6 +82,9 @@ export const OnboardingEngine = () => {
   const [musicPlaying, setMusicPlaying] = useState(false)  // 背景音乐播放状态
   const [loadingStep, setLoadingStep] = useState(0)  // Loading 动画步骤(0-3)
   const [isTransitioning, setIsTransitioning] = useState(false)  // 防重复锁:避免 Stage 重复切换
+
+  // === Gemini Live 预连接（优化 Stage2 加载时间） ===
+  const geminiLiveRef = useRef(null)
 
   // === 配置加载 ===
   const { config, loading: configLoading, error: configError, fromCache } = useOnboardingConfig()
@@ -176,7 +180,6 @@ export const OnboardingEngine = () => {
           const unmute = () => {
             audio.muted = false
             setMusicPlaying(true)
-            console.log('[OnboardingEngine] Background music unmuted')
             document.removeEventListener('click', unmute)
             document.removeEventListener('touchstart', unmute)
             document.removeEventListener('keydown', unmute)
@@ -298,6 +301,25 @@ export const OnboardingEngine = () => {
         await updateUserData(currentStepNumber, stageData)
       }
 
+      // 🔥 优化：Stage1 完成后预连接 Gemini Live，减少 Stage2 等待时间
+      if (currentStepNumber === 1 && !geminiLiveRef.current) {
+        try {
+          const apiKey = import.meta.env.VITE_GEMINI_API_KEY
+          if (!apiKey) {
+            console.error('[OnboardingEngine] ❌ VITE_GEMINI_API_KEY 未设置')
+          } else {
+            geminiLiveRef.current = new GeminiLiveService(apiKey, {
+              model: 'models/gemini-2.5-flash-native-audio-preview-09-2025',
+              voiceName: 'Achird',
+              responseModality: 'AUDIO_TEXT'
+            })
+            geminiLiveRef.current.connect()
+          }
+        } catch (error) {
+          console.error('[OnboardingEngine] ❌ Gemini Live 预连接失败:', error)
+        }
+      }
+
       // Stage 4 完成后跳转到角色主页(Onboarding 流程结束)
       if (currentStepNumber === 4) {
         handleRedirect()
@@ -360,6 +382,7 @@ export const OnboardingEngine = () => {
           onComplete={handleStageComplete}
           currentStep={currentStepNumber}
           userData={userData}
+          geminiLive={currentStepNumber === 2 ? geminiLiveRef.current : undefined}
         />
       </div>
     </MobileFrame>

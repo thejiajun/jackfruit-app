@@ -45,10 +45,8 @@ export const useOnboardingConfig = () => {
       const age = Date.now() - timestamp
 
       if (age < CACHE_DURATION) {
-        console.log(`[useOnboardingConfig] Loaded from cache (${Math.round(age / 1000)}s old)`)
         return data
       } else {
-        console.log('[useOnboardingConfig] Cache expired, fetching fresh data')
         localStorage.removeItem(CACHE_KEY)
         return null
       }
@@ -69,7 +67,6 @@ export const useOnboardingConfig = () => {
         data,
         timestamp: Date.now()
       }))
-      console.log('[useOnboardingConfig] Config cached successfully')
     } catch (err) {
       console.error('[useOnboardingConfig] Cache write error:', err)
     }
@@ -116,7 +113,6 @@ export const useOnboardingConfig = () => {
   // ============================================================
   const clearCache = () => {
     localStorage.removeItem(CACHE_KEY)
-    console.log('[useOnboardingConfig] Cache cleared')
   }
 
   return {

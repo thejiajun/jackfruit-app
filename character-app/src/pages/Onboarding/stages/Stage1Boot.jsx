@@ -182,12 +182,10 @@ const Stage1Boot = ({ config, globalStyles, onComplete, currentStep, userData })
   const handleInitiate = async () => {
     // 防止用户连续点击多次(可能导致多次权限请求或重复提交)
     if (isRequestingPermission) {
-      console.warn('[Stage1Boot] 用户重复点击,已忽略')
       return
     }
 
     setIsRequestingPermission(true)  // 加锁,禁用按钮
-    console.log('[Stage1Boot] 用户点击 INITIATE,开始请求权限...')
 
     try {
       // 【关键】请求浏览器摄像头和麦克风权限
@@ -201,7 +199,6 @@ const Stage1Boot = ({ config, globalStyles, onComplete, currentStep, userData })
       // Stage 2 会重新开启摄像头
       stream.getTracks().forEach(track => track.stop())
 
-      console.log('[Stage1Boot] ✅ 权限获取成功,准备进入 Stage 2')
 
       // 【关键】调用 onComplete 回调,通知父组件进入下一阶段
       // 传递权限状态和时间戳,用于数据追踪
@@ -218,7 +215,6 @@ const Stage1Boot = ({ config, globalStyles, onComplete, currentStep, userData })
     // 注意:成功时不解锁,避免用户在跳转过程中重复点击
   }
 
-  // console.log('[Stage1Boot] Rendering, showButton:', showButton)
 
   return (
     <div className="onboarding-step stage1-boot">

@@ -43,7 +43,6 @@ const Stage3Forging = ({ config, globalStyles, onComplete, currentStep, userData
   const [isSubmitting, setIsSubmitting] = useState(false)  // 防止用户连续点击"SHOW ME"按钮
 
   useEffect(() => {
-    console.log('[Stage3Forging] 组件加载', { phase, userData })
   }, [])
 
   // ============================================================
@@ -68,7 +67,6 @@ const Stage3Forging = ({ config, globalStyles, onComplete, currentStep, userData
         newPhotos[slotIndex] = event.target.result  // 保存 base64 数据
         setPhotos(newPhotos)
 
-        console.log('[Stage3Forging] 📸 照片已添加到槽位', slotIndex)
         // 每上传一张,进度条自动增长(视觉反馈)
       }
       reader.readAsDataURL(file)
@@ -83,7 +81,6 @@ const Stage3Forging = ({ config, globalStyles, onComplete, currentStep, userData
   // 用户体验:进度条从 45% → 50% → 70% → 85% → 100%,让用户感觉"正在发生什么"
   // ============================================================
   const handleDoneUpload = async () => {
-    console.log('[Stage3Forging] 📤 用户点击 DONE,开始分析...')
 
     // === 第 1 步:性格分析 ===
     setPhase('analyzing')
@@ -96,7 +93,6 @@ const Stage3Forging = ({ config, globalStyles, onComplete, currentStep, userData
       const photoDataUrls = photos.filter(Boolean)  // 过滤掉空槽位
       const personality = await analyzePersonalityFromPhotos(photoDataUrls)
       setPersonalityData(personality)
-      console.log('[Stage3Forging] 🧠 性格分析完成:', personality)
 
       // === 第 2 步:生成自我介绍脚本 ===
       setProgress(70)
@@ -107,7 +103,6 @@ const Stage3Forging = ({ config, globalStyles, onComplete, currentStep, userData
       const characterName = userData.character_name || 'Unknown'
       const script = await generateIntroScript(personality, characterName)
       setIntroScript(script)
-      console.log('[Stage3Forging] 📝 自我介绍脚本已生成:', script)
 
       // === 第 3 步:视频生成(未来功能,当前跳过) ===
       setPhase('generating')
@@ -149,12 +144,10 @@ const Stage3Forging = ({ config, globalStyles, onComplete, currentStep, userData
   const handleReveal = async () => {
     // 防止用户连续点击多次
     if (isSubmitting) {
-      console.warn('[Stage3Forging] ⚠️ 用户重复点击,已忽略')
       return
     }
 
     setIsSubmitting(true)
-    console.log('[Stage3Forging] 🔓 揭示角色,上传照片中...')
 
     try {
       // 上传所有照片到 Supabase Storage
@@ -162,7 +155,6 @@ const Stage3Forging = ({ config, globalStyles, onComplete, currentStep, userData
 
       // 边界情况:如果用户没上传任何照片(可能直接跳过)
       if (photoDataUrls.length === 0) {
-        console.warn('[Stage3Forging] ⚠️ 没有照片需要上传')
         onComplete({
           photo_urls: [],
           personality_analysis: personalityData,
@@ -172,9 +164,7 @@ const Stage3Forging = ({ config, globalStyles, onComplete, currentStep, userData
         return
       }
 
-      console.log(`[Stage3Forging] 📤 上传 ${photoDataUrls.length} 张照片到云端...`)
       const photoUrls = await uploadPhotos(photoDataUrls, 'onboarding-resources', 'stage3-photos')
-      console.log('[Stage3Forging] ✅ 所有照片已上传:', photoUrls)
 
       // 调用 onComplete 回调,传递数据给 Stage 4
       onComplete({
