@@ -1,0 +1,193 @@
+/* ========================================
+   Stage 2 Mirror - Realtime Mini Styles
+   ======================================== */
+
+/* Top Controls */
+.mirror-controls-top {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.icon-btn {
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(34, 211, 238, 0.3);
+    color: rgba(34, 211, 238, 0.8);
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    backdrop-filter: blur(4px);
+}
+
+.icon-btn:hover {
+    background: rgba(34, 211, 238, 0.1);
+    border-color: rgba(34, 211, 238, 0.8);
+    color: rgba(34, 211, 238, 1);
+}
+
+.icon-btn.active {
+    background: rgba(34, 211, 238, 0.2);
+    border-color: rgba(34, 211, 238, 1);
+    color: rgba(34, 211, 238, 1);
+    box-shadow: 0 0 10px rgba(34, 211, 238, 0.3);
+}
+
+/* Status Dot */
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #64748b;
+    box-shadow: 0 0 5px rgba(100, 116, 139, 0.5);
+    transition: all 0.3s ease;
+}
+
+.status-dot.online {
+    background: #22d3ee;
+    box-shadow: 0 0 8px rgba(34, 211, 238, 0.8);
+    animation: pulse-dot 2s infinite;
+}
+
+.status-dot.offline {
+    background: #ef4444;
+    box-shadow: 0 0 5px rgba(239, 68, 68, 0.5);
+}
+
+/* Interaction Controls (Bottom) */
+.interaction-controls {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    width: 100%;
+    max-width: 400px;
+}
+
+.input-bar {
+    display: flex;
+    width: 100%;
+    gap: 8px;
+    background: rgba(15, 23, 42, 0.8);
+    padding: 4px;
+    border-radius: 24px;
+    border: 1px solid rgba(34, 211, 238, 0.2);
+}
+
+.input-bar input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: #e2e8f0;
+    font-family: 'VT323', monospace;
+    font-size: 18px;
+    padding: 8px 16px;
+    outline: none;
+}
+
+.input-bar button {
+    background: rgba(34, 211, 238, 0.1);
+    border: none;
+    color: #22d3ee;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.input-bar button:hover {
+    background: rgba(34, 211, 238, 0.3);
+}
+
+.capture-btn-large {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: rgba(15, 23, 42, 0.6);
+    border: 2px solid rgba(34, 211, 238, 0.5);
+    font-size: 24px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+}
+
+.capture-btn-large:hover {
+    transform: scale(1.1);
+    border-color: #22d3ee;
+    box-shadow: 0 0 20px rgba(34, 211, 238, 0.3);
+}
+
+/* Message Bubbles */
+.message-bubble {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    padding: 8px;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.4);
+    margin-bottom: 8px;
+    animation: fadeIn 0.3s ease-out;
+}
+
+.message-bubble.ai {
+    border-left: 2px solid #22d3ee;
+}
+
+.message-bubble.user {
+    border-left: 2px solid #94a3b8;
+    flex-direction: row-reverse;
+}
+
+.message-bubble .role-icon {
+    font-size: 16px;
+}
+
+.message-bubble .text {
+    font-family: 'VT323', monospace;
+    font-size: 16px;
+    color: #e2e8f0;
+    line-height: 1.4;
+}
+
+/* Generating Status */
+.generating-status {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    width: 100%;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.progress-bar .fill {
+    height: 100%;
+    background: #22d3ee;
+    transition: width 0.3s ease;
+}
+
+.view-result-btn {
+    background: rgba(34, 211, 238, 0.2);
+    border: 1px solid #22d3ee;
+    color: #22d3ee;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: 'VT323', monospace;
+    font-size: 16px;
+}

@@ -14,12 +14,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 AI 虚拟角色交互系统:
 - **Onboarding System**: Database-driven modular flow supporting both legacy 7-step and new 4-stage AI-native architectures
   - **4-Stage Architecture** (NEW): System Boot → Mirror Guide → Forging → Living Avatar
-  - **Stage 2 (Mirror Guide)** recently refactored to support:
-    - Real-time auto-frame analysis (every 2s via Gemini Vision)
-    - Continuous AI conversation during camera feed
+  - **Stage 2 (Mirror Guide)** 🔥 最新架构 (使用 OpenAI Realtime API):
+    - Real-time bidirectional audio streaming (push-to-talk)
+    - Automatic speech recognition (Whisper) and TTS
+    - Local camera preview for photo capture (video NOT sent to AI)
     - Background identity generation while conversation continues
     - Toggle between camera/captured photo/generated image views
-  - Integrates Gemini Vision API, Gemini Live API, and FAL video generation
+  - Integrates OpenAI Realtime API (audio), Gemini Vision API (photo analysis), and FAL video generation
   - Camera/microphone access, real-time photo analysis, voice conversation
 - View AI characters with dynamic moods/health/statuses
 - Video-based character display with smooth clip transitions
@@ -118,7 +119,10 @@ node scripts/query-looks.js             # 查询 prompt_items 表 (调试模板)
 
 **Shared Backend (远程 Supabase):**
 - Supabase (PostgreSQL, Storage, Edge Functions)
-- AI APIs: FAL (图像/视频生成), Google Gemini (文本生成、视觉分析、实时语音)
+- AI APIs:
+  - OpenAI Realtime API (实时语音对话 - Stage 2 Mirror) 🔥 Current
+  - Google Gemini (文本生成、静态图片视觉分析) - Legacy/Fallback
+  - FAL (图像/视频生成 - SeeDrawm, SeeDance)
 - Storage buckets: photos, videos, cached_generations, onboarding-resources
 
 ### Important: Pika Theme Transition (Current Work)
@@ -188,7 +192,8 @@ The project is transitioning from Matrix green theme to Pika cyan/blue aesthetic
 │   │   │   ├── characterService.js       # Character CRUD operations
 │   │   │   ├── onboardingService.js      # Onboarding config & session management
 │   │   │   ├── geminiService.js          # Gemini Vision API (传统 REST)
-│   │   │   ├── geminiLiveService.js      # 🔥 NEW: Gemini Live API (WebSocket 实时音视频)
+│   │   │   ├── openaiRealtimeService.js  # 🔥 CURRENT: OpenAI Realtime API (WebSocket 实时音视频)
+│   │   │   ├── geminiLiveService.js      # Legacy: Gemini Live API (保留用于参考)
 │   │   │   ├── imageGenerationService.js # 🔥 NEW: FAL SeeDrawm v4 Edit (Stage2 身份生成)
 │   │   │   ├── storageService.js         # 🔥 NEW: Supabase Storage upload helper
 │   │   │   ├── templateService.js        # Template loading from Supabase
@@ -312,7 +317,7 @@ Stage 2 (Mirror Guide) 🔥 REFACTORED:
     → Transition to CONVERSATION phase (最多 20 秒,超时强制进入)
 
   CONVERSATION Phase:
-    → Gemini Live WebSocket 连接 (实时视频流 0.5 FPS)
+    → OpenAI Realtime WebSocket 连接 (实时视频流 0.5 FPS)
     → AI "看到" 用户并提问 (基于视频流分析)
     → 用户可随时拍照 → REVIEWING sub-state
     → REVIEWING: RETAKE/CONFIRM 按钮
@@ -347,11 +352,12 @@ Stage 4 (Living Avatar):
 
 **Key Technologies**:
 - **Gemini Vision API**: Photo analysis (传统 REST,用于静态照片分析)
-- **Gemini Live API** 🔥: Real-time bidirectional audio+video streaming (WebSocket)
-  - Model: `gemini-2.5-flash-native-audio-preview-09-2025`
-  - Voice: `Achird` (Native Audio)
-  - Modality: `AUDIO_TEXT` (返回音频 + 文本转录)
+- **OpenAI Realtime API** 🔥: Real-time bidirectional audio+video streaming (WebSocket)
+  - Model: `gpt-realtime-mini-2025-10-06`
+  - Voice: `alloy` (多种可选: alloy, echo, fable, onyx, nova, shimmer)
+  - Image Input: 通过 `conversation.item.create` + `input_image` (base64)
   - Frame rate: 0.5 FPS (每 2 秒一帧)
+  - Audio: PCM16, 24kHz (内置 Whisper 转录)
 - **FAL SeeDrawm v4 Edit** 🔥: Identity image generation (Stage 2)
 - **FAL SeeDance**: Video generation from starting image + prompts (Stage 3)
 - **ElevenLabs**: Text-to-speech for character voice (fallback)
@@ -516,67 +522,72 @@ export default function useStepNavigation(config) {
 
 **Stage 2 (Mirror Guide) - REFACTORED Architecture (2025-01):**
 
-**重大架构变更**: Mirror 阶段已完全重构,使用 **Gemini Live API** 实现实时视频流对话:
+**重大架构变更 (最新)**: Mirror 阶段已切换到 **OpenAI Realtime API** 实现实时音频对话：
 
 ```javascript
-// Stage2Mirror.jsx - NEW architecture with Gemini Live integration
-const Stage2Mirror = ({ config, onComplete }) => {
-  // Main phase: 'INTRO' | 'CONVERSATION'
-  const [phase, setPhase] = useState('INTRO')
+// Stage2Mirror.jsx - NEW architecture with OpenAI Realtime API
+const Stage2Mirror = ({ config, onComplete, realtimeService }) => {
+  // Main state: CONNECTING → GREETING → TALKING → READY_TO_CAPTURE
+  // → REVIEWING → GENERATING → SHOWING_RESULT → COMPLETED
+  const [state, setState] = useState('CONNECTING')
 
-  // Conversation sub-states: 'CAMERA' | 'REVIEWING' | 'GENERATING' | 'SHOWING_RESULT'
-  const [conversationSubState, setConversationSubState] = useState('CAMERA')
-
-  // Mirror display: 'camera' | 'captured_photo' | 'generated_image'
-  const [mirrorDisplayMode, setMirrorDisplayMode] = useState('camera')
-
-  // Generation status: 'idle' | 'generating' | 'completed' | 'failed'
-  const [generationStatus, setGenerationStatus] = useState('idle')
-
-  // 🔥 NEW: Gemini Live WebSocket connection
-  const [geminiLive, setGeminiLive] = useState(null)
-  const [geminiConnected, setGeminiConnected] = useState(false)
-
-  // 🔥 Key Feature 1: Connect to Gemini Live API (Real-time bidirectional audio+video)
+  // 🔥 Key Feature 1: Connect to OpenAI Realtime API (Real-time bidirectional audio)
   useEffect(() => {
-    const live = new GeminiLiveService(apiKey, {
-      model: 'models/gemini-2.5-flash-native-audio-preview-09-2025',
-      voiceName: 'Achird', // Native Audio 语音
-      responseModality: 'AUDIO_TEXT', // 返回音频 + 文本转录
-      onText: (text) => {
-        setMessages(prev => [...prev, { role: 'ai', text }])
-      },
-      onConnected: () => setGeminiConnected(true)
-    })
-    live.connect()
-    setGeminiLive(live)
-    return () => live.close()
-  }, [])
-
-  // 🔥 Key Feature 2: Stream video frames to Gemini Live (0.5 FPS)
-  // Replaces old auto-frame analysis - Gemini now "sees" continuously via video stream
-  useEffect(() => {
-    if (phase === 'CONVERSATION' && geminiLive && geminiConnected) {
-      const interval = setInterval(async () => {
-        // 🔥 Send video frame to Gemini Live (no separate Vision API call)
-        await geminiLive.captureAndSendFrame(canvasRef.current, videoRef.current, 0.8)
-      }, 2000) // Every 2 seconds (0.5 FPS)
-      return () => clearInterval(interval)
+    if (!realtimeService) {
+      console.error('[Stage2Mirror] ❌ OpenAI Realtime 实例未传入')
+      setConnectionError(true)
+      return
     }
-  }, [phase, geminiLive, geminiConnected])
 
-  // 🔥 Key Feature 3: AI asks questions based on what it "sees" in real-time
-  const generateAIQuestion = async () => {
-    // Gemini already "sees" the user via video stream, just prompt it
-    const prompt = "Based on what you see, ask ONE simple, gentle question. Under 10 words."
-    await geminiLive.sendText(prompt)
-    // Audio + text response handled automatically by callbacks
+    // 检查连接状态
+    if (realtimeService.connected) {
+      setGeminiConnected(true)
+      setState('GREETING')
+    }
+  }, [realtimeService])
+
+  // 🔥 Key Feature 2: Listen to text messages from OpenAI
+  // Note: OpenAI Realtime API does NOT support video streaming
+  // Video is used only for local preview and photo capture
+  useEffect(() => {
+    if (!realtimeService) return
+
+    const handleText = (text, role) => {
+      setMessages(prev => [...prev, { role: role === 'user' ? 'user' : 'ai', text }])
+
+      // 检测 AI 是否提示拍照
+      if (role === 'assistant') {
+        const lowerText = text.toLowerCase()
+        if (lowerText.includes('take a photo') || lowerText.includes('capture')) {
+          setState('READY_TO_CAPTURE')
+        }
+      }
+    }
+
+    realtimeService.onTextCallback = handleText
+    return () => {
+      realtimeService.onTextCallback = null
+    }
+  }, [realtimeService, state])
+
+  // 🔥 Key Feature 3: Push-to-Talk voice input
+  const handleStartRecording = () => {
+    setIsRecording(true)
+    if (realtimeService && realtimeService.startRecording) {
+      realtimeService.startRecording()
+    }
+  }
+
+  const handleStopRecording = async () => {
+    setIsRecording(false)
+    if (realtimeService && realtimeService.stopRecording) {
+      await realtimeService.stopRecording()
+    }
   }
 
   // Key Feature 4: User photo capture → Review → Confirm
   const handleConfirmPhoto = async () => {
-    setConversationSubState('GENERATING')
-    setMirrorDisplayMode('camera') // Keep showing camera during generation
+    setState('GENERATING')
 
     // Background generation starts (non-blocking, uses FAL SeeDrawm v4 Edit)
     triggerBackgroundGeneration()
@@ -586,38 +597,32 @@ const Stage2Mirror = ({ config, onComplete }) => {
 
   // Key Feature 5: Background generation with notification
   const triggerBackgroundGeneration = async () => {
-    setGenerationStatus('generating')
-    // 🔥 Uses imageGenerationService.js → generate-starting-image Edge Function
-    const result = await generateWithRetry(capturedPhotoDataUrl, analysis, 3)
-    setGeneratedImageUrl(result.imageUrl)
-    setGenerationStatus('completed')
+    setGenerationProgress(0)
+    const result = await generateWithRetry(capturedPhoto, analysis, 3)
+    setGeneratedImage(result.imageUrl)
+    setGenerationProgress(100)
 
-    // Notify user: border flash + "Your digital form is ready" button
+    // Notify user: "Your digital form is ready"
     notifyGenerationComplete()
-  }
-
-  // Key Feature 6: Toggle view between camera and generated image
-  const handleViewResult = () => {
-    setMirrorDisplayMode('generated_image')
-    setConversationSubState('SHOWING_RESULT')
-    // Now shows CONFIRM IDENTITY button
   }
 
   return (/* UI with state-based rendering */)
 }
 ```
 
-**关键技术改进 (2025-01 重构):**
-- 🔥 **Gemini Live WebSocket**: 替代传统 REST API,实现双向实时音频+视频通信
-- 🔥 **视频流输入**: 每 2 秒发送一帧给 Gemini Live (0.5 FPS),AI 持续"看到"用户
-- 🔥 **移除旧架构**: 不再使用 `analyzePhotoWithVision()` 每次单独分析帧
-- 🔥 **Native Audio**: 使用 Gemini 2.5 Flash Native Audio model (Achird 语音)
+**关键技术改进 (2025-01 最新 - OpenAI Realtime):**
+- 🔥 **OpenAI Realtime WebSocket**: 替代 Gemini Live,实现双向实时音频通信
+- 🔥 **纯音频模式**: OpenAI Realtime API 暂不支持视频流输入
+- 🔥 **摄像头本地预览**: 视频仅用于本地显示和拍照,不发送给 AI
+- 🔥 **TTS 自动播放**: OpenAI 内置 TTS,响应自动朗读
+- 🔥 **语音转录**: 内置 Whisper 模型自动转录用户语音
 - 🔥 **非阻塞生成**: 对话在 10-30 秒图像生成期间继续进行
-- 🔥 **清晰状态机**: INTRO → CAMERA → REVIEWING → GENERATING → SHOWING_RESULT
-- 🔥 **镜像切换**: camera ↔ captured_photo ↔ generated_image 灵活切换
+- 🔥 **清晰状态机**: CONNECTING → GREETING → TALKING → READY_TO_CAPTURE → REVIEWING → GENERATING → SHOWING_RESULT → COMPLETED
+- 🔥 **Push-to-Talk**: 按住说话模式,用户主动控制录音
 
-**新增服务文件:**
-- `geminiLiveService.js` - Gemini Live API WebSocket wrapper
+**新增/更新服务文件:**
+- `openaiRealtimeService.js` - OpenAI Realtime API WebSocket wrapper (新增)
+- `geminiLiveService.js` - Gemini Live API (已弃用,保留用于参考)
 - `imageGenerationService.js` - FAL SeeDrawm v4 Edit integration for identity generation
 
 **Stage 3 (Forging) - Video Generation Workflow:**
@@ -683,8 +688,11 @@ VITE_SUPABASE_URL=your_supabase_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 VITE_SUPABASE_SERVICE_ROLE_KEY=your_service_role_key  # 管理员操作用
 
-# Google Gemini (文本生成、视觉分析、实时语音)
+# Google Gemini (文本生成、视觉分析 - Legacy)
 VITE_GEMINI_API_KEY=your_gemini_api_key
+
+# 🔥 OpenAI (实时语音对话 - Current)
+VITE_OPENAI_API_KEY=your_openai_api_key
 ```
 
 **Supabase Edge Functions** 也需要环境变量:
@@ -736,18 +744,31 @@ supabase functions logs generate-single-video --tail
 - **Character App:**
   - Core: `[CharacterView]`, `[VideoPlayer]`, `[characterService]`
   - Onboarding: `[OnboardingEngine]`, `[onboardingService]`, `[Stage1Boot]`, `[Stage2Mirror]`, `[Stage3Forging]`, `[Stage4Avatar]`
-  - Services: `[geminiService]`, `[GeminiLive]` 🔥, `[imageGenerationService]` 🔥, `[templateService]`, `[videoGenerationService]`, `[ttsService]`, `[voiceService]`, `[audioCacheService]`
+  - Services:
+    - 🔥 Current: `[OpenAIRealtime]`, `[imageGenerationService]`
+    - Legacy: `[geminiService]`, `[GeminiLive]`
+    - Other: `[templateService]`, `[videoGenerationService]`, `[ttsService]`, `[voiceService]`, `[audioCacheService]`
 - **Admin Panel:** `[generationService]`, `[statusManagement]`, `[OnboardingConfigManagement]`
 - **Edge Functions:** Check Supabase dashboard logs (`supabase functions logs <name> --tail`)
 
 ### Important Development Notes
 
-**🔥 Gemini Live API 使用注意事项:**
-- WebSocket 连接可能不稳定,需要处理重连逻辑
-- 视频帧发送频率建议: 0.5 FPS (每 2 秒),避免超出 API 限制
-- 音频响应是流式的,需要使用回调函数处理
-- 文本转录可能有延迟,不要依赖同步响应
-- 连接超时建议设置为 20 秒,超时后强制进入下一阶段
+**🔥 OpenAI Realtime API 使用注意事项 (Current):**
+- WebSocket 连接需要通过 subprotocols 认证: `['realtime', 'openai-insecure-api-key.' + API_KEY]`
+- **支持图片输入**: 通过 `conversation.item.create` + `input_image` 发送 base64 编码的图片
+- **使用模型**: `gpt-realtime-mini-2025-10-06` (支持音频+图片多模态输入)
+- 音频格式: PCM16, 24000 Hz (与浏览器原生兼容)
+- 音频响应是流式的 (`response.audio.delta`),需要累积后播放
+- 内置 Whisper 转录和 TTS,无需额外配置
+- Turn Detection (VAD) 可选,默认开启 `server_vad`
+- 连接超时建议设置为 10 秒
+
+**🔥 Gemini Live API 使用注意事项 (Legacy - 已弃用):**
+- ~~WebSocket 连接可能不稳定,需要处理重连逻辑~~
+- ~~视频帧发送频率建议: 0.5 FPS (每 2 秒),避免超出 API 限制~~
+- ~~音频响应是流式的,需要使用回调函数处理~~
+- ~~文本转录可能有延迟,不要依赖同步响应~~
+- ~~连接超时建议设置为 20 秒,超时后强制进入下一阶段~~
 
 **🔥 Stage1Boot 音频处理:**
 - 所有音频播放已移除,改用固定时间间隔控制打字机效果
@@ -807,12 +828,13 @@ supabase functions logs generate-single-video --tail
 - Verify `getUserMedia` is supported in browser
 - Check console for `[Stage2Mirror]` errors
 
-**Stage 2 - Gemini Live connection failing:**
-- Verify `VITE_GEMINI_API_KEY` is set in `.env`
-- Check Gemini API quota/billing at ai.google.dev
+**Stage 2 - OpenAI Realtime connection failing:**
+- Verify `VITE_OPENAI_API_KEY` is set in `.env`
+- Check OpenAI API quota/billing at platform.openai.com/usage
 - Ensure browser supports WebSocket (check console for WebSocket errors)
-- Check `[GeminiLive]` and `[Stage2Mirror]` console logs for connection errors
-- Verify model name: `models/gemini-2.5-flash-native-audio-preview-09-2025`
+- Check `[OpenAIRealtime]` and `[Stage2Mirror]` console logs for connection errors
+- Verify model name: `gpt-realtime-mini-2025-10-06`
+- Check authentication: subprotocols must include `['realtime', 'openai-insecure-api-key.' + API_KEY]`
 - Try refreshing page if connection drops (WebSocket may need reconnection)
 
 **Stage 2 - Templates not loading:**
@@ -864,7 +886,7 @@ supabase functions logs generate-single-video --tail
 ### 4-Stage AI-Native Onboarding Architecture (Pika 主题)
 - **双架构支持**: 代码库同时支持 7 步 (传统) 和 4 阶段 (新) 流程
 - **向后兼容**: 4 阶段使用现有 DB 列 (`step_1_splash`, `step_3_identity_input`, 等)
-- **AI 优先体验**: 深度集成 Gemini Vision, Gemini Live, FAL 视频生成
+- **AI 优先体验**: 深度集成 Gemini Vision, OpenAI Realtime, FAL 视频生成
 - **权限流程**: Stage 1 (Boot) 在交互阶段前处理相机/麦克风权限
 - **延迟管理**: Stage 3 (Forging) 包含进度动画来管理 30-60 秒的视频生成等待
 - **状态驱动 UI**: 每个阶段使用基于阶段的状态机 (例如: camera → analyzing → conversation → templates)

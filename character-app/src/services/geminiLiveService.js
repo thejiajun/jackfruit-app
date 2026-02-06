@@ -31,6 +31,15 @@ class GeminiLiveService {
     this.audioMimeType = null         // 🔥 当前音频的 MIME 类型
     this.isConnected = false          // WebSocket 连接状态
 
+    // Audio Context & Processing
+    this.audioContext = null
+    this.mediaStream = null
+    this.audioProcessor = null
+    this.audioWorkletNode = null
+    this.inputSource = null
+    this.workletModuleLoaded = false  // 🔥 防止重复注册 AudioWorklet
+    this.recordedAudioChunks = []     // 🔥 累积录制的音频数据
+
     // === 事件回调函数(业务层注册) ===
     this.onMessageCallback = options.onMessage || null     // 收到任何消息时触发
     this.onAudioCallback = options.onAudio || null         // 收到音频数据时触发
@@ -43,10 +52,11 @@ class GeminiLiveService {
     this.config = {
       model: options.model || 'models/gemini-2.5-flash-native-audio-preview-09-2025', // AI 模型(原生音频版)
       voiceName: options.voiceName || 'Zephyr',                // AI 语音角色(Zephyr 男声 / Achird 女声)
-      responseModalities: options.responseModalities || [Modality.AUDIO, Modality.TEXT],   // 返回模式:音频+文本
+      responseModalities: options.responseModalities || [Modality.AUDIO],   // 返回模式:仅音频(Native Audio 模型限制)
       temperature: options.temperature || 0.9,                 // 创造性参数(0-1,越高越随机)
       ...options.config
     }
+    this.onLog = options.onLog || console.log // 日志回调
 
     console.log('[GeminiLive] Service initialized', {
       model: this.config.model,
@@ -57,15 +67,6 @@ class GeminiLiveService {
 
   /**
    * 【核心方法】建立与 Gemini Live API 的 WebSocket 连接
-   *
-   * 产品需求:在用户进入 Stage 2(Mirror)时自动连接,准备好实时对话能力
-   * 技术实现:创建 WebSocket 会话,注册 4 个生命周期回调(open/message/error/close)
-   *
-   * 配置说明:
-   * - responseModalities: 控制 AI 返回音频还是文字(或两者)
-   * - mediaResolution: 视频质量(MEDIUM 平衡性能和清晰度)
-   * - voiceConfig: AI 语音角色选择(Zephyr/Achird/Kore/...)
-   * - contextWindowCompression: 对话历史压缩策略(超过 25600 tokens 时自动压缩到 12800)
    */
   async connect() {
     if (this.isConnected) {
@@ -77,10 +78,32 @@ class GeminiLiveService {
       console.log('[GeminiLive] Connecting...')
 
       // === 构建 Gemini Live 会话配置 ===
-      // 🔥 测试：使用最小化配置，逐步添加参数来定位问题
       const sessionConfig = {
-        responseModalities: this.config.responseModalities     // 返回格式: [Modality.AUDIO, Modality.TEXT]
+        responseModalities: this.config.responseModalities,
+        mediaResolution: MediaResolution.MEDIA_RESOLUTION_MEDIUM,
+        speechConfig: {
+          voiceConfig: {
+            prebuiltVoiceConfig: {
+              voiceName: this.config.voiceName
+            }
+          }
+        },
+        contextWindowCompression: {
+          triggerTokens: '25600',
+          slidingWindow: { targetTokens: '12800' },
+        },
+        // 🔥 关键修复:添加 systemInstruction 告诉 Gemini 用语音回复
+        systemInstruction: {
+          parts: [{
+            text: "You are a helpful voice assistant named Pika. Always respond with natural conversational speech in the same language as the user. Keep responses concise (1-2 sentences). Be friendly and supportive."
+          }]
+        }
       }
+
+      console.log('[GeminiLive] 🔍 Model:', this.config.model)
+      console.log('[GeminiLive] 🔍 responseModalities:', sessionConfig.responseModalities)
+      console.log('[GeminiLive] 🔍 mediaResolution:', sessionConfig.mediaResolution)
+      console.log('[GeminiLive] 🔍 voiceName:', sessionConfig.speechConfig?.voiceConfig?.prebuiltVoiceConfig?.voiceName)
 
       // === 创建 WebSocket 会话并注册生命周期回调 ===
       this.session = await this.ai.live.connect({
@@ -97,7 +120,7 @@ class GeminiLiveService {
           },
           // 【回调 2】收到 AI 返回的消息(音频/文本)
           onmessage: (message) => {
-            console.log('[GeminiLive] 📨 Message received:', message)
+            // console.log('[GeminiLive] 📨 Message received:', message)
             this.handleMessage(message)  // 解析消息,触发 onText/onAudio 回调
           },
           // 【回调 3】连接出错(网络断开/API 错误等)
@@ -119,6 +142,9 @@ class GeminiLiveService {
       })
 
       console.log('[GeminiLive] Session created successfully')
+
+      // 🔥 注意:不需要发送初始消息,systemInstruction 已经足够让 Gemini 知道如何响应
+      // 用户说话后 Gemini 会自动用语音回复
     } catch (error) {
       console.error('[GeminiLive] Failed to connect:', error)
       this.isConnected = false
@@ -128,21 +154,6 @@ class GeminiLiveService {
 
   /**
    * 【消息处理】解析 WebSocket 收到的消息,分发音频和文本数据
-   *
-   * 产品需求:AI 返回的消息可能包含音频、文本或两者,需要分别处理
-   * 技术实现:解析 message.serverContent.modelTurn.parts 数组,识别数据类型并触发对应回调
-   *
-   * 消息结构示例:
-   * {
-   *   serverContent: {
-   *     modelTurn: {
-   *       parts: [
-   *         { text: "Hello, how are you?" },                           // 文本消息
-   *         { inlineData: { data: "base64...", mimeType: "audio/pcm" } } // 音频消息
-   *       ]
-   *     }
-   *   }
-   * }
    */
   handleMessage(message) {
     // 添加到响应队列(供 waitMessage 等辅助方法使用)
@@ -161,7 +172,7 @@ class GeminiLiveService {
     for (const part of parts) {
       // 【处理音频数据】AI 返回的语音回复
       if (part.inlineData && part.inlineData.mimeType.startsWith('audio/')) {
-        console.log(`[GeminiLive] 🔊 Audio chunk received (${this.audioParts.length + 1})`)
+        // console.log(`[GeminiLive] 🔊 Audio chunk received (${this.audioParts.length + 1})`)
         this.audioParts.push(part.inlineData.data)
         this.audioMimeType = part.inlineData.mimeType  // 保存 mimeType
 
@@ -188,15 +199,222 @@ class GeminiLiveService {
   }
 
   /**
+   * 【开始录音】使用 AudioWorklet 录制音频并实时流式发送给 Gemini
+   */
+  async startRecording() {
+    if (!this.session) {
+      console.error('[GeminiLive] Cannot start recording: session not connected')
+      return
+    }
+
+    try {
+      console.log('[GeminiLive] Starting audio recording (Streaming Mode)...')
+
+      // Initialize AudioContext if needed
+      if (!this.audioContext) {
+        this.audioContext = new (window.AudioContext || window.webkitAudioContext)({
+          sampleRate: 16000 // Try to request 16kHz
+        })
+      }
+
+      // Resume context if suspended
+      if (this.audioContext.state === 'suspended') {
+        await this.audioContext.resume()
+      }
+
+      // 🔥 获取实际采样率
+      const actualSampleRate = this.audioContext.sampleRate
+      console.log('[GeminiLive] AudioContext sampleRate:', actualSampleRate)
+      this.recordingSampleRate = actualSampleRate
+
+      // Get microphone stream
+      this.mediaStream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          channelCount: 1,
+          sampleRate: 16000
+        }
+      })
+
+      // Create source
+      this.inputSource = this.audioContext.createMediaStreamSource(this.mediaStream)
+
+      // 🔥 只在第一次时加载 AudioWorklet 模块
+      if (!this.workletModuleLoaded) {
+        const workletCode = `
+          class PCMProcessor extends AudioWorkletProcessor {
+            constructor() {
+              super()
+              this.bufferSize = 4096 // 适当缓冲，避免过于频繁的 WebSocket 消息
+              this.buffer = new Float32Array(this.bufferSize)
+              this.bufferIndex = 0
+            }
+
+            process(inputs, outputs, parameters) {
+              const input = inputs[0]
+              if (input.length > 0) {
+                const inputChannel = input[0]
+                
+                // 填充缓冲区
+                for (let i = 0; i < inputChannel.length; i++) {
+                  this.buffer[this.bufferIndex++] = inputChannel[i]
+                  
+                  // 缓冲区满，发送数据
+                  if (this.bufferIndex >= this.bufferSize) {
+                    this.flush()
+                  }
+                }
+              }
+              return true
+            }
+
+            flush() {
+              if (this.bufferIndex > 0) {
+                // 转换为 Int16 PCM
+                const int16Data = new Int16Array(this.bufferIndex)
+                for (let i = 0; i < this.bufferIndex; i++) {
+                  const s = Math.max(-1, Math.min(1, this.buffer[i]))
+                  int16Data[i] = s < 0 ? s * 0x8000 : s * 0x7FFF
+                }
+                
+                this.port.postMessage(int16Data.buffer)
+                this.bufferIndex = 0
+              }
+            }
+          }
+          registerProcessor('pcm-processor', PCMProcessor)
+        `
+        const blob = new Blob([workletCode], { type: 'application/javascript' })
+        const workletUrl = URL.createObjectURL(blob)
+
+        await this.audioContext.audioWorklet.addModule(workletUrl)
+        this.workletModuleLoaded = true
+        URL.revokeObjectURL(workletUrl)
+      }
+
+      this.audioWorkletNode = new AudioWorkletNode(this.audioContext, 'pcm-processor')
+
+      // 🔥 实时接收并发送音频数据
+      this.audioWorkletNode.port.onmessage = (event) => {
+        const pcmBuffer = event.data
+        this.sendRealtimeAudioChunk(pcmBuffer)
+      }
+
+      // Connect graph
+      this.inputSource.connect(this.audioWorkletNode)
+      this.audioWorkletNode.connect(this.audioContext.destination)
+
+      console.log('[GeminiLive] 🎤 Recording started')
+    } catch (error) {
+      console.error('[GeminiLive] Failed to start recording:', error)
+    }
+  }
+
+  /**
+   * 【辅助方法】发送实时音频块
+   */
+  async sendRealtimeAudioChunk(arrayBuffer) {
+    if (!this.session) return
+
+    try {
+      // 🔥 关键修复: 创建真正的 Blob 对象,而不是对象字面量
+      const mimeType = `audio/pcm;rate=${this.recordingSampleRate || 16000}`
+      const audioBlob = new Blob([arrayBuffer], { type: mimeType })
+
+      // 🔥 使用 audio 属性直接发送 Blob (不需要 base64 转换)
+      await this.session.sendRealtimeInput({
+        audio: audioBlob
+      })
+    } catch (error) {
+      // 忽略发送错误，避免刷屏
+      // console.error('[GeminiLive] Failed to send audio chunk:', error)
+    }
+  }
+
+  /**
+   * 【停止录音】只负责停止采集和断开连接
+   */
+  async stopRecording() {
+    console.log('[GeminiLive] Stopping recording...')
+
+    if (this.mediaStream) {
+      this.mediaStream.getTracks().forEach(track => track.stop())
+      this.mediaStream = null
+    }
+
+    if (this.audioWorkletNode) {
+      this.audioWorkletNode.disconnect()
+      this.audioWorkletNode = null
+    }
+
+    if (this.inputSource) {
+      this.inputSource.disconnect()
+      this.inputSource = null
+    }
+
+    // 发送一个空的 clientContent 可能有助于标记结束，但通常不需要
+    // await this.sendText('') 
+
+    console.log('[GeminiLive] ⏹️ Recording stopped')
+  }
+
+
+  /**
+   * 【发送消息】向 AI 发送文本消息
+   */
+  async sendText(text) {
+    if (!this.session) {
+      throw new Error('Session not connected')
+    }
+
+    try {
+      console.log('[GeminiLive] Sending text:', text)
+
+      // 发送对话轮次(turn)格式的消息
+      await this.session.sendClientContent({
+        turns: [{ role: 'user', parts: [{ text }] }]
+      })
+
+      console.log('[GeminiLive] ✅ Text sent')
+    } catch (error) {
+      console.error('[GeminiLive] Failed to send text:', error)
+      throw error
+    }
+  }
+
+  /**
+   * 【发送视频帧】向 AI 发送摄像头的单帧图像
+   */
+  async sendVideoFrame(imageData, mimeType = 'image/jpeg') {
+    if (!this.session) {
+      throw new Error('Session not connected')
+    }
+
+    try {
+      // console.log('[GeminiLive] Sending video frame...')
+
+      // 🔥 关键修复: 将 base64 转换为 Blob 对象
+      // imageData 是 base64 字符串（不含前缀）
+      const binaryString = atob(imageData)
+      const bytes = new Uint8Array(binaryString.length)
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i)
+      }
+      const videoBlob = new Blob([bytes], { type: mimeType })
+
+      // 🔥 使用 video 属性直接发送 Blob
+      await this.session.sendRealtimeInput({
+        video: videoBlob
+      })
+
+      // console.log('[GeminiLive] ✅ Video frame sent')
+    } catch (error) {
+      console.error('[GeminiLive] Failed to send video frame:', error)
+      // 不抛出错误，避免打断主循环
+    }
+  }
+
+  /**
    * 【音频合并播放】将收集的所有音频块合并为一个完整音频并播放
-   *
-   * 产品需求:用户听到完整连贯的 AI 语音回复,而不是断断续续的片段
-   * 技术实现:合并所有 base64 音频块,转换为 WAV 格式,播放一次
-   *
-   * 为什么需要合并:
-   * - Gemini Live 以流式方式返回音频(每次返回一个小片段)
-   * - 如果逐个播放会导致重叠或断断续续
-   * - 合并后播放可以确保完整性和流畅性
    */
   playMergedAudio() {
     if (this.audioParts.length === 0) {
@@ -226,20 +444,10 @@ class GeminiLiveService {
 
   /**
    * 【音频播放】将 AI 返回的音频数据转换为 WAV 格式并播放
-   *
-   * 产品需求:用户听到 AI 的语音回复,营造真实对话感
-   * 技术实现:base64 PCM → Uint8Array → 添加 WAV 头 → Blob URL → Audio 元素播放
-   *
-   * 流程:
-   * 1. 解码 base64 字符串为二进制数组
-   * 2. 添加 WAV 文件头(浏览器只能播放完整的音频格式)
-   * 3. 创建 Blob URL(内存中的临时 URL)
-   * 4. 使用 Audio 元素播放
-   * 5. 播放完成后释放内存
    */
   async playAudio(base64Data, mimeType) {
     try {
-      console.log('[GeminiLive] Playing audio...')
+      // console.log('[GeminiLive] Playing audio...')
 
       // === 第 1 步:解码 base64 → Uint8Array ===
       const binaryString = atob(base64Data)  // base64 解码为二进制字符串
@@ -278,335 +486,111 @@ class GeminiLiveService {
 
   /**
    * 【音频处理】为裸 PCM 数据添加 WAV 文件头
-   *
-   * 技术说明:
-   * - Gemini Live 返回的音频是 PCM 格式(未压缩的原始音频数据)
-   * - 浏览器无法直接播放 PCM,需要添加 WAV 头信息(采样率、声道数等)
-   * - WAV 头固定 44 字节,包含 RIFF 描述符、fmt 子块、data 子块
-   *
-   * 参数:
-   * - audioData: 原始 PCM 音频数据(ArrayBuffer)
-   * - mimeType: MIME 类型字符串,例如 "audio/pcm;rate=24000"
-   *
-   * 返回: 完整的 WAV 音频数据(ArrayBuffer)
+   */
+  /**
+   * 【音频处理】为裸 PCM 数据添加 WAV 文件头
+   * 参考用户提供的最佳实践实现
    */
   addWavHeader(audioData, mimeType) {
-    const { sampleRate, numChannels, bitsPerSample } = this.parseMimeType(mimeType)
+    const options = this.parseMimeType(mimeType)
     const dataLength = audioData.byteLength
-    const header = new ArrayBuffer(44)  // WAV 头固定 44 字节
-    const view = new DataView(header)
+    const { numChannels, sampleRate, bitsPerSample } = options
 
-    // === RIFF chunk descriptor(块描述符) ===
-    view.setUint32(0, 0x46464952, true)        // "RIFF" 标识(小端序)
-    view.setUint32(4, 36 + dataLength, true)   // 文件总大小 - 8 字节
-    view.setUint32(8, 0x45564157, true)        // "WAVE" 标识
+    const byteRate = sampleRate * numChannels * bitsPerSample / 8
+    const blockAlign = numChannels * bitsPerSample / 8
 
-    // === fmt sub-chunk(格式子块) ===
-    view.setUint32(12, 0x20746d66, true)       // "fmt " 标识
-    view.setUint32(16, 16, true)               // fmt 块大小(PCM 固定 16)
-    view.setUint16(20, 1, true)                // 音频格式(1 = PCM)
-    view.setUint16(22, numChannels, true)      // 声道数(1 = 单声道, 2 = 立体声)
-    view.setUint32(24, sampleRate, true)       // 采样率(Hz)
-    view.setUint32(28, sampleRate * numChannels * bitsPerSample / 8, true) // 字节率(每秒传输字节数)
-    view.setUint16(32, numChannels * bitsPerSample / 8, true) // 块对齐(一个采样占用字节数)
-    view.setUint16(34, bitsPerSample, true)    // 位深度(每个采样的位数)
+    const buffer = new ArrayBuffer(44 + dataLength)
+    const view = new DataView(buffer)
 
-    // === data sub-chunk(数据子块) ===
-    view.setUint32(36, 0x61746164, true)       // "data" 标识
-    view.setUint32(40, dataLength, true)       // 音频数据大小
+    // RIFF chunk descriptor
+    this.writeString(view, 0, 'RIFF')
+    view.setUint32(4, 36 + dataLength, true)
+    this.writeString(view, 8, 'WAVE')
 
-    // === 合并 header + 原始音频数据 ===
-    const combined = new Uint8Array(44 + dataLength)
-    combined.set(new Uint8Array(header), 0)    // 前 44 字节是头信息
-    combined.set(new Uint8Array(audioData), 44)  // 后续是音频数据
+    // fmt sub-chunk
+    this.writeString(view, 12, 'fmt ')
+    view.setUint32(16, 16, true)             // Subchunk1Size (PCM)
+    view.setUint16(20, 1, true)              // AudioFormat (1 = PCM)
+    view.setUint16(22, numChannels, true)    // NumChannels
+    view.setUint32(24, sampleRate, true)     // SampleRate
+    view.setUint32(28, byteRate, true)       // ByteRate
+    view.setUint16(32, blockAlign, true)     // BlockAlign
+    view.setUint16(34, bitsPerSample, true)  // BitsPerSample
 
-    return combined.buffer
+    // data sub-chunk
+    this.writeString(view, 36, 'data')
+    view.setUint32(40, dataLength, true)     // Subchunk2Size
+
+    // Copy audio data
+    const audioBytes = new Uint8Array(audioData)
+    const finalBytes = new Uint8Array(buffer)
+    finalBytes.set(audioBytes, 44)
+
+    return buffer
+  }
+
+  writeString(view, offset, string) {
+    for (let i = 0; i < string.length; i++) {
+      view.setUint8(offset + i, string.charCodeAt(i))
+    }
   }
 
   /**
    * 【辅助方法】从 MIME 类型字符串解析音频参数
-   *
-   * 示例:
-   * - "audio/pcm;rate=24000" → { sampleRate: 24000, numChannels: 1, bitsPerSample: 16 }
-   * - "audio/pcm" → 使用默认值
+   * 参考用户提供的最佳实践实现
    */
   parseMimeType(mimeType) {
-    // 默认值(Gemini Live 通常使用 24kHz 单声道 16bit)
-    let sampleRate = 24000
-    let numChannels = 1
-    let bitsPerSample = 16
+    const [fileType, ...params] = (mimeType || '').split(';').map(s => s.trim())
+    const [_, format] = fileType.split('/')
 
-    if (!mimeType) return { sampleRate, numChannels, bitsPerSample }
+    const options = {
+      numChannels: 1,
+      sampleRate: 24000, // Default for Gemini
+      bitsPerSample: 16,
+    }
 
-    const parts = mimeType.split(';')
-    for (const part of parts) {
-      const [key, value] = part.trim().split('=')
-      if (key === 'rate' && value) {
-        sampleRate = parseInt(value, 10)
+    if (format && format.startsWith('L')) {
+      const bits = parseInt(format.slice(1), 10)
+      if (!isNaN(bits)) {
+        options.bitsPerSample = bits
       }
     }
 
-    return { sampleRate, numChannels, bitsPerSample }
-  }
-
-  /**
-   * 【发送消息】向 AI 发送文本消息
-   *
-   * 产品场景:用户在对话界面输入文字消息(不使用麦克风时)
-   * 技术实现:使用 sendClientContent API,格式为 turns 数组
-   *
-   * 注意:如果需要同时发送音频,应该使用 sendRealtimeInput 而不是此方法
-   */
-  async sendText(text) {
-    if (!this.session) {
-      throw new Error('Session not connected')
-    }
-
-    try {
-      console.log('[GeminiLive] Sending text:', text)
-
-      // 发送对话轮次(turn)格式的消息
-      await this.session.sendClientContent({
-        turns: [{ role: 'user', parts: [{ text }] }]
-      })
-
-      console.log('[GeminiLive] ✅ Text sent')
-    } catch (error) {
-      console.error('[GeminiLive] Failed to send text:', error)
-      throw error
-    }
-  }
-
-  /**
-   * 【发送音频】向 AI 发送麦克风录制的音频数据
-   *
-   * 产品场景:用户通过麦克风说话,实时传输给 AI
-   * 技术实现:将 AudioWorklet 捕获的音频数据(base64 PCM)发送到 Gemini Live
-   *
-   * 参数:
-   * - audioData: base64 编码的音频数据(通常是 PCM 格式)
-   * - mimeType: 音频格式,例如 "audio/pcm;rate=16000"(16kHz 采样率)
-   */
-  async sendAudio(audioData, mimeType = 'audio/pcm;rate=16000') {
-    if (!this.session) {
-      throw new Error('Session not connected')
-    }
-
-    try {
-      console.log('[GeminiLive] Sending audio data...')
-
-      await this.session.sendRealtimeInput({
-        audio: {
-          data: audioData, // base64 encoded PCM
-          mimeType
-        }
-      })
-
-      console.log('[GeminiLive] ✅ Audio sent')
-    } catch (error) {
-      console.error('[GeminiLive] Failed to send audio:', error)
-      throw error
-    }
-  }
-
-  /**
-   * 【发送视频帧】向 AI 发送摄像头的单帧图像
-   *
-   * 产品场景:让 AI "看到"用户,分析用户的外貌、环境、表情等
-   * 技术实现:定期(例如每 2 秒)捕获摄像头画面,转为 JPEG Blob 后发送
-   *
-   * 参数:
-   * - imageData: base64 编码的图片数据(不含 data URL 前缀)
-   * - mimeType: 图片格式,推荐 'image/jpeg'(比 PNG 小 70%)
-   */
-  async sendVideoFrame(imageData, mimeType = 'image/jpeg') {
-    if (!this.session) {
-      throw new Error('Session not connected')
-    }
-
-    try {
-      console.log('[GeminiLive] Sending video frame...')
-
-      // 🔥 将 base64 转换为 Blob（API 要求 Blob 格式，不是 { data, mimeType }）
-      const byteCharacters = atob(imageData)
-      const byteNumbers = new Array(byteCharacters.length)
-      for (let i = 0; i < byteCharacters.length; i++) {
-        byteNumbers[i] = byteCharacters.charCodeAt(i)
-      }
-      const byteArray = new Uint8Array(byteNumbers)
-      const blob = new Blob([byteArray], { type: mimeType })
-
-      await this.session.sendRealtimeInput({
-        video: blob  // 🔥 使用 video 属性发送 Blob（没有 image 属性！）
-      })
-
-      console.log('[GeminiLive] ✅ Video frame sent')
-    } catch (error) {
-      console.error('[GeminiLive] Failed to send video frame:', error)
-      throw error
-    }
-  }
-
-  /**
-   * 【便捷方法】从 Canvas 捕获视频帧并发送给 AI
-   *
-   * 产品场景:Stage 2(Mirror)中每 2 秒自动捕获用户画面发送给 AI
-   * 技术实现:Video → Canvas 绘制 → toDataURL 转 JPEG → 发送
-   *
-   * 参数:
-   * - canvas: 用于截图的 Canvas 元素(隐藏的,不显示在页面上)
-   * - video: 摄像头视频流元素(<video> 标签)
-   * - quality: JPEG 压缩质量(0-1),0.8 平衡质量和大小
-   *
-   * 流程:
-   * 1. 调整 Canvas 尺寸为视频分辨率
-   * 2. 绘制视频当前帧到 Canvas
-   * 3. 转换为 base64 JPEG
-   * 4. 发送到 Gemini Live
-   */
-  async captureAndSendFrame(canvas, video, quality = 0.8) {
-    if (!canvas || !video) {
-      console.error('[GeminiLive] Canvas or video element not provided')
-      return
-    }
-
-    try {
-      // === 第 1 步:将视频当前帧绘制到 canvas ===
-      const ctx = canvas.getContext('2d')
-      canvas.width = video.videoWidth    // 使用视频原始宽度
-      canvas.height = video.videoHeight  // 使用视频原始高度
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
-
-      // === 第 2 步:将 canvas 转换为 base64 JPEG ===
-      const dataUrl = canvas.toDataURL('image/jpeg', quality)  // quality 控制压缩率
-      const base64Data = dataUrl.split(',')[1] // 移除 "data:image/jpeg;base64," 前缀
-
-      // === 第 3 步:发送到 Gemini Live ===
-      await this.sendVideoFrame(base64Data, 'image/jpeg')
-    } catch (error) {
-      console.error('[GeminiLive] Failed to capture and send frame:', error)
-      throw error
-    }
-  }
-
-  /**
-   * 【辅助方法】等待 AI 完成一个完整的回合(turn)
-   *
-   * 使用场景:需要等待 AI 完整回复后再执行后续逻辑时使用
-   * 技术说明:Gemini Live 的回复可能分多个消息返回,通过 turnComplete 标志判断结束
-   *
-   * 参数:
-   * - timeout: 超时时间(毫秒),默认 30 秒
-   *
-   * 返回: 包含本轮所有消息的数组
-   */
-  async waitForTurnComplete(timeout = 30000) {
-    const turn = []
-    let done = false
-    const startTime = Date.now()
-
-    while (!done) {
-      // 超时检查(避免无限等待)
-      if (Date.now() - startTime > timeout) {
-        console.warn('[GeminiLive] Wait for turn timeout')
-        break
-      }
-
-      const message = await this.waitMessage(1000)
-      if (message) {
-        turn.push(message)
-
-        // 检查是否完成(turnComplete 标志表示 AI 回复结束)
-        if (message.serverContent?.turnComplete) {
-          done = true
-        }
+    for (const param of params) {
+      const [key, value] = param.split('=').map(s => s.trim())
+      if (key === 'rate') {
+        options.sampleRate = parseInt(value, 10)
       }
     }
 
-    return turn
-  }
-
-  /**
-   * 【辅助方法】等待下一条消息从队列中出现
-   *
-   * 使用场景:需要同步等待 AI 回复时使用(例如测试或调试)
-   * 技术说明:轮询检查 responseQueue,直到有消息或超时
-   *
-   * 参数:
-   * - timeout: 超时时间(毫秒),默认 5 秒
-   *
-   * 返回: 消息对象或 null(超时)
-   */
-  async waitMessage(timeout = 5000) {
-    const startTime = Date.now()
-
-    while (true) {
-      const message = this.responseQueue.shift()
-      if (message) {
-        return message
-      }
-
-      // 超时检查
-      if (Date.now() - startTime > timeout) {
-        return null
-      }
-
-      // 等待 100ms 再检查(避免 CPU 占用过高)
-      await new Promise(resolve => setTimeout(resolve, 100))
-    }
-  }
-
-  /**
-   * 【辅助方法】从一个回合(turn)中提取所有文本内容
-   *
-   * 使用场景:需要获取 AI 本轮回复的完整文字时使用
-   * 技术说明:遍历 turn 数组中所有 message,合并所有文本 part
-   *
-   * 参数:
-   * - turn: waitForTurnComplete 返回的消息数组
-   *
-   * 返回: 合并后的文本字符串
-   */
-  extractTextFromTurn(turn) {
-    const textParts = []
-
-    for (const message of turn) {
-      const parts = message.serverContent?.modelTurn?.parts || []
-      for (const part of parts) {
-        if (part.text) {
-          textParts.push(part.text)
-        }
-      }
-    }
-
-    return textParts.join(' ')  // 用空格连接所有文本片段
+    return options
   }
 
   /**
    * 【生命周期】关闭 WebSocket 连接并清理资源
-   *
-   * 产品场景:用户离开 Stage 2 或完成 Onboarding 时调用
-   * 技术实现:关闭 WebSocket,清空消息队列和音频缓存
-   *
-   * 注意:关闭后需要重新调用 connect() 才能再次使用
    */
   close() {
     if (this.session) {
       console.log('[GeminiLive] Closing session...')
       this.session.close()
       this.session = null
-      this.isConnected = false
-      this.responseQueue = []      // 清空消息队列
-      this.audioParts = []          // 清空音频缓存
-      console.log('[GeminiLive] ✅ Session closed')
     }
+
+    this.stopRecording()
+
+    if (this.audioContext) {
+      this.audioContext.close()
+      this.audioContext = null
+    }
+
+    this.isConnected = false
+    this.responseQueue = []      // 清空消息队列
+    this.audioParts = []          // 清空音频缓存
+    console.log('[GeminiLive] ✅ Session closed')
   }
 
   /**
    * 【状态查询】检查 WebSocket 是否已连接
-   *
-   * 使用场景:发送消息前检查连接状态,避免报错
-   * 返回: true(已连接) | false(未连接)
    */
   get connected() {
     return this.isConnected

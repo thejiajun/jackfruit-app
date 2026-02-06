@@ -36,6 +36,7 @@ const Stage3Forging = ({ config, globalStyles, onComplete, currentStep, userData
   // === AI 生成结果 ===
   const [personalityData, setPersonalityData] = useState(null)  // Gemini Vision 分析的性格数据
   const [introScript, setIntroScript] = useState('')            // Gemini 生成的自我介绍脚本
+  const [generatedVideoUrl, setGeneratedVideoUrl] = useState(null) // 🔥 生成的过渡视频 URL
 
   // === 防重复提交锁 ===
   const [isSubmitting, setIsSubmitting] = useState(false)  // 防止用户连续点击"SHOW ME"按钮
@@ -98,20 +99,44 @@ const Stage3Forging = ({ config, globalStyles, onComplete, currentStep, userData
       const script = await generateIntroScript(personality, characterName)
       setIntroScript(script)
 
-      // === 第 3 步:视频生成(未来功能,当前跳过) ===
+      // === 第 3 步:视频生成 (Google Veo) ===
       setPhase('generating')
-      setCurrentMessage('Creating your character...')
+      setCurrentMessage('Forging your digital transition video...')
 
-      // TODO: 调用 FAL SeeDance API 生成口型同步视频
-      // 当前开发环境跳过,直接进入完成状态
+      // 获取 Stage 2 生成的图片
+      // 注意：userData 结构可能因 OnboardingEngine 的保存逻辑而异
+      // 假设是 userData.step_3_identity_input (旧键名) 或 stage_2_mirror
+      const stage2Data = userData?.step_3_identity_input || userData?.stage_2_mirror || {}
+      const { generatedImage, backViewImage } = stage2Data
+
+      let videoUrl = '/mock-videos/revealing.mp4' // 默认 Fallback
+
+      if (generatedImage && backViewImage) {
+        // 动态导入服务
+        const { generateTransitionVideo } = await import('../../../services/imageGenerationService')
+        const generatedVideoUrl = await generateTransitionVideo(backViewImage, generatedImage)
+
+        if (generatedVideoUrl) {
+          videoUrl = generatedVideoUrl
+          setCurrentMessage('Video forged successfully.')
+        } else {
+          console.warn('[Stage3Forging] Video generation failed, using fallback')
+        }
+      } else {
+        console.warn('[Stage3Forging] Missing source images for video generation', { generatedImage, backViewImage })
+      }
+
+      // 保存视频 URL 供 handleReveal 使用
+      setGeneratedVideoUrl(videoUrl)
+
       setTimeout(() => {
         setPhase('complete')
-      }, 2000)  // 模拟 2 秒生成时间
+      }, 1000)
 
     } catch (error) {
       console.error('[Stage3Forging] ❌ 分析/生成失败:', error)
 
-      // 【容错处理】失败时使用 fallback 数据,避免流程卡死
+      // 【容错处理】失败时使用 fallback 数据
       setPersonalityData({
         personality_tags: ['Creative', 'Thoughtful', 'Tech-savvy'],
         personality_summary: 'A mysterious soul navigating the digital realm',
@@ -119,6 +144,7 @@ const Stage3Forging = ({ config, globalStyles, onComplete, currentStep, userData
         lifestyle: 'Digital nomad'
       })
       setIntroScript('I am a wanderer in the digital void, seeking connections beyond the screen.')
+      setGeneratedVideoUrl('/mock-videos/revealing.mp4')
 
       setPhase('complete')
     }
@@ -147,7 +173,7 @@ const Stage3Forging = ({ config, globalStyles, onComplete, currentStep, userData
           photo_urls: [],
           personality_analysis: personalityData,
           intro_script: introScript,
-          revealing_video_url: '/mock-videos/revealing.mp4'  // 占位视频
+          revealing_video_url: generatedVideoUrl || '/mock-videos/revealing.mp4'
         })
         return
       }
@@ -156,10 +182,10 @@ const Stage3Forging = ({ config, globalStyles, onComplete, currentStep, userData
 
       // 调用 onComplete 回调,传递数据给 Stage 4
       onComplete({
-        photo_urls: photoUrls,                        // 云端 URLs(不是 base64)
+        photo_urls: photoUrls,                        // 云端 URLs
         personality_analysis: personalityData,        // AI 分析的性格数据
         intro_script: introScript,                    // 生成的自我介绍
-        revealing_video_url: '/mock-videos/revealing.mp4'  // 揭示视频(未来替换为真实生成的视频)
+        revealing_video_url: generatedVideoUrl || '/mock-videos/revealing.mp4'  // 🔥 使用生成的视频
       })
 
       // 注意:成功后不解锁,防止用户在跳转过程中重复点击

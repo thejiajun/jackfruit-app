@@ -57,18 +57,20 @@ export async function generateRecommendedIdentity(userPhotoBase64, analysisConte
     console.log('[imageGenerationService] Scene prompt:', scenePrompt)
 
     // === 第 4 步:调用 Edge Function 生成图像 ===
-    // Edge Function 内部调用 FAL SeeDrawm v4 Edit API
+    // Edge Function 内部调用 FAL API (更换为 nano banana / Flux Pro Ultra)
     const { data, error } = await supabase.functions.invoke('generate-starting-image', {
       body: {
         character_avatar_url: publicUrl,  // 用户照片 URL(作为参考图)
         scene_prompt: scenePrompt,        // AI 生成提示词
-        mood: analysisContext?.mood || 'neutral',  // 情绪(影响表情和光照)
-        // 传递分析上下文(可选,用于更精准的生成)
+        mood: analysisContext?.mood || 'neutral',
+        aspect_ratio: "9:16",             // 🔥 强制 9:16 竖屏
+        model_id: "fal-ai/flux-pro/v1.1-ultra", // 🔥 更换为高质量模型 (Nano Banana?)
+        // 传递分析上下文
         analysis_context: {
-          location: analysisContext?.location,      // 地点(例如"outdoor"/"indoor")
-          weather: analysisContext?.weather,        // 天气(例如"sunny"/"cloudy")
-          clothing: analysisContext?.clothing,      // 服饰风格(例如"casual"/"formal")
-          time_of_day: analysisContext?.time_of_day // 时间(例如"morning"/"evening")
+          location: analysisContext?.location,
+          weather: analysisContext?.weather,
+          clothing: analysisContext?.clothing,
+          time_of_day: analysisContext?.time_of_day
         }
       }
     })
@@ -82,7 +84,7 @@ export async function generateRecommendedIdentity(userPhotoBase64, analysisConte
 
     return {
       imageUrl: data.image_url,              // 生成的数字形象 URL
-      uploadedPhotoUrl: publicUrl            // 原始照片 URL(可用于对比显示)
+      uploadedPhotoUrl: publicUrl            // 原始照片 URL
     }
 
   } catch (error) {
@@ -92,30 +94,50 @@ export async function generateRecommendedIdentity(userPhotoBase64, analysisConte
 }
 
 /**
+ * 【新功能】生成黑白背影照
+ * 基于已生成的 Identity 照片，生成一张背对镜头的黑白照片
+ * 
+ * @param {string} identityImageUrl - S2 生成的 Identity 照片 URL
+ * @returns {Promise<string>} 生成的背影照 URL
+ */
+export async function generateBackViewImage(identityImageUrl) {
+  console.log('[imageGenerationService] Generating back view image...')
+
+  try {
+    // 构建背影照 Prompt
+    const backViewPrompt = "Back view of this person, looking away from camera, black and white photography, high contrast, noir style, cinematic lighting, 9:16 aspect ratio, minimalist background"
+
+    // 调用 Edge Function (复用 generate-starting-image，但用途不同)
+    const { data, error } = await supabase.functions.invoke('generate-starting-image', {
+      body: {
+        character_avatar_url: identityImageUrl, // 使用 Identity 图作为参考
+        scene_prompt: backViewPrompt,
+        image_strength: 0.6,                    // 适当降低参考图权重，允许姿态变化
+        aspect_ratio: "9:16",
+        model_id: "fal-ai/flux-pro/v1.1-ultra"
+      }
+    })
+
+    if (error) {
+      throw new Error(`Back view generation failed: ${error.message}`)
+    }
+
+    console.log('[imageGenerationService] Back view generated:', data.image_url)
+    return data.image_url
+
+  } catch (error) {
+    console.error('[imageGenerationService] Error generating back view:', error)
+    throw error
+  }
+}
+
+/**
  * 【提示词构建】根据产品需求和用户场景构建 AI 生成提示词
- *
- * 产品需求(来自产品文档):
- * 1. 去除头部配饰(帽子、头巾等)- 展示完整的五官和发型
- * 2. 更换服饰但保持风格一致 - 例如休闲装 → 时尚休闲装
- * 3. 微调五官但保持辨识度 - 让用户仍然能认出"这是我"
- * 4. 提升颜值:平滑皮肤、优化光照、真实肤质纹理
- * 5. 融合西方演员气质 - 增加"国际范儿"
- * 6. 整体氛围:自然、性感、酷炫
- * 7. 背景:专业摄影棚背景,双色渐变粉彩色调
- *
- * 技术实现:
- * - 使用固定的基础提示词模板(保证生成质量一致性)
- * - 可选:根据 mood 等上下文动态调整提示词
- *
- * @param {object} analysisContext - Gemini Vision 分析的场景上下文
- * @returns {string} 完整的 AI 生成提示词
  */
 function buildGenerationPrompt(analysisContext) {
-  // 基础提示词(精心调优过的模板,不要随意修改)
-  const basePrompt = `Remove all the accessories on head if there are any, change the outfits to a similar vibe outfit, change the facial features a tiny bit, still looking good, a bit better looking version of this person, with smooth skin, great professional lighting, great real skin texture, add a tiny bit mixture with an actor from the west, looking natural, looking a bit more sexy, looking cool, background is aesthetic portrait photoshoot background drop, with artistic 2 tone gradient pastel color`
+  // 基础提示词 (更新为 9:16 竖屏适配)
+  const basePrompt = `Remove all the accessories on head if there are any, change the outfits to a similar vibe outfit, change the facial features a tiny bit, still looking good, a bit better looking version of this person, with smooth skin, great professional lighting, great real skin texture, add a tiny bit mixture with an actor from the west, looking natural, looking a bit more sexy, looking cool, background is aesthetic portrait photoshoot background drop, with artistic 2 tone gradient pastel color, 9:16 vertical aspect ratio`
 
-  // 可选:基于用户情绪动态调整提示词
-  // 例如 mood="happy" 可以强化微笑表情
   if (analysisContext?.mood) {
     return `${basePrompt}. Mood: ${analysisContext.mood}.`
   }
@@ -124,25 +146,7 @@ function buildGenerationPrompt(analysisContext) {
 }
 
 /**
- * 【容错机制】带重试的图像生成(指数退避策略)
- *
- * 产品需求:图像生成偶尔会失败(网络波动/API 限流等),需要自动重试避免用户等待失败
- * 技术实现:最多重试 3 次,每次重试间隔翻倍(2 秒 → 4 秒 → 8 秒)
- *
- * 重试场景:
- * - FAL API 临时性错误(500/502/503 等)
- * - 网络超时
- * - Supabase Storage 上传失败
- *
- * 不重试场景:
- * - 用户输入错误(例如照片格式不支持)
- * - API 配额耗尽(需要人工介入)
- *
- * @param {string} userPhotoBase64 - 用户照片的 base64 data URL
- * @param {object} analysisContext - 场景上下文
- * @param {number} maxRetries - 最大重试次数(默认 3 次)
- * @returns {Promise<{imageUrl: string, uploadedPhotoUrl: string}>} 生成结果
- * @throws {Error} 所有重试都失败后抛出最后一次的错误
+ * 【容错机制】带重试的图像生成
  */
 export async function generateWithRetry(userPhotoBase64, analysisContext, maxRetries = 3) {
   let lastError = null
@@ -151,20 +155,57 @@ export async function generateWithRetry(userPhotoBase64, analysisContext, maxRet
     try {
       console.log(`[imageGenerationService] Attempt ${attempt}/${maxRetries}`)
       const result = await generateRecommendedIdentity(userPhotoBase64, analysisContext)
-      return result  // 成功则立即返回
+      return result
     } catch (error) {
       lastError = error
       console.error(`[imageGenerationService] Attempt ${attempt} failed:`, error)
 
-      // 如果还有重试机会,等待后重试
       if (attempt < maxRetries) {
-        const delay = Math.pow(2, attempt) * 1000 // 指数退避:2s, 4s, 8s
+        const delay = Math.pow(2, attempt) * 1000
         console.log(`[imageGenerationService] Retrying in ${delay}ms...`)
         await new Promise(resolve => setTimeout(resolve, delay))
       }
     }
   }
 
-  // 所有重试都失败,抛出错误
   throw lastError || new Error('Generation failed after retries')
+}
+
+/**
+ * 【新功能】生成过渡视频 (Google Veo)
+ * 从黑白背影照过渡到彩色 Identity 照
+ * 
+ * @param {string} firstFrameUrl - 起始帧 (黑白背影)
+ * @param {string} lastFrameUrl - 结束帧 (彩色 Identity)
+ * @returns {Promise<string>} 生成的视频 URL
+ */
+export async function generateTransitionVideo(firstFrameUrl, lastFrameUrl) {
+  console.log('[mediaGenerationService] Generating transition video...')
+
+  try {
+    // 调用 Edge Function (假设有一个支持 Veo 的 endpoint)
+    // 如果没有专门的 generate-video，可能需要更新 generate-starting-image 或新建
+    // 这里假设我们使用 generate-video-veo
+    const { data, error } = await supabase.functions.invoke('generate-video-veo', {
+      body: {
+        first_frame_image_url: firstFrameUrl,
+        last_frame_image_url: lastFrameUrl,
+        aspect_ratio: "9:16",
+        model_id: "google/veo-3.1-fast", // 🔥 指定 Veo 3.1 Fast
+        prompt: "Cinematic transition from back view to front view, high quality, smooth motion"
+      }
+    })
+
+    if (error) {
+      throw new Error(`Video generation failed: ${error.message}`)
+    }
+
+    console.log('[mediaGenerationService] Video generated:', data.video_url)
+    return data.video_url
+
+  } catch (error) {
+    console.error('[mediaGenerationService] Error generating video:', error)
+    // throw error // 暂时不抛出阻断错误，以免影响流程，返回 null
+    return null
+  }
 }

@@ -261,7 +261,7 @@
 }
 ```
 
-**原因**: 当前使用的 Gemini API Key (`AIzaSyBaH4MSP0e1f23fDSQkyTIDNlUAuoh7kHg`) 已被 Google 标记为泄露，无法使用。
+**原因**: 当前使用的 Gemini API Key (`LEAKED_KEY_REMOVED`) 已被 Google 标记为泄露，无法使用。
 
 **解决方案**:
 

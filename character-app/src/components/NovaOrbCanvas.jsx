@@ -110,7 +110,7 @@ export const NovaOrbCanvas = ({
     // 4. 绘制粒子
     ctx.globalCompositeOperation = 'lighter' // 发光叠加模式
 
-    particles.slice(0, activeParticleCount).forEach((p, index) => {
+    particles.slice(0, activeParticleCount).forEach((p) => {
       // 记录粒子出生时间（首次激活时）
       if (p.birthTime === -1) {
         p.birthTime = time
@@ -179,26 +179,20 @@ export const NovaOrbCanvas = ({
 
       if (scale > 0) {
         // 颜色动态切换
-        let baseColor
         let glowIntensity = alpha * 0.8 // 辉光强度
 
         if (mode === 'IDLE') {
-          baseColor = { r: 255, g: 255, b: 255 }
           ctx.fillStyle = `rgba(255, 255, 255, ${alpha * 0.9 * fadeIn})` // 应用淡入效果
         } else if (mode === 'LISTENING' || mode === 'LISTEN') {
-          baseColor = { r: 0, g: 150, b: 255 }
           ctx.fillStyle = `rgba(0, 150, 255, ${alpha * 0.6 * fadeIn})` // 应用淡入效果
         } else if (mode === 'HEARING') {
           const pulse = Math.sin(time * 5) * 0.2 + 0.8
-          baseColor = { r: 0, g: 180, b: 255 }
           ctx.fillStyle = `rgba(0, 180, 255, ${alpha * pulse * fadeIn})` // 应用淡入效果
           glowIntensity = alpha * pulse * 1.2 * fadeIn
         } else if (mode === 'THINKING') {
           const thinkAlpha = 0.3 + Math.sin(time * 4 + p.phase) * 0.3
-          baseColor = { r: 150, g: 0, b: 255 }
           ctx.fillStyle = `rgba(150, 0, 255, ${alpha * thinkAlpha * fadeIn})` // 应用淡入效果
         } else if (mode === 'SPEAKING' || mode === 'SPEAK') {
-          baseColor = { r: 0, g: 243, b: 255 }
           ctx.fillStyle = `rgba(0, 243, 255, ${alpha * fadeIn})` // 应用淡入效果
           glowIntensity = alpha * 1.2 * fadeIn
         }
@@ -248,6 +242,7 @@ export const NovaOrbCanvas = ({
   }
 
   // 初始化 & 启动渲染循环
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     initParticles()
     resizeCanvas()
