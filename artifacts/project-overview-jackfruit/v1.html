@@ -1,0 +1,163 @@
+<title>Jackfruit 核心功能</title>
+<style>
+:root{--bg:#101114;--panel:#181a20;--line:#2b2e37;--text:#f5f6f8;--muted:#a8adb8;--accent:#8b7dff;--good:#45d39c;--warn:#f4bd5b;--bad:#ff7676;--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;color-scheme:dark}
+body{background:var(--bg);color:var(--text);font:15px/1.65 -apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue",sans-serif}
+.wrap{max-width:1180px;margin:0 auto;padding-inline:20px;padding-block:40px 64px;display:grid;gap:32px}
+h1{font-size:30px;line-height:1.25;margin:0;text-wrap:balance}
+h2{font-size:19px;margin:0 0 14px;text-wrap:balance}
+h3{font-size:15px;margin:0 0 6px}
+p{margin:0}
+.muted{color:var(--muted)}
+.meta{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px;font-size:13px;color:var(--muted)}
+.badge{display:inline-block;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:3px 9px;border-radius:999px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.b-good{color:var(--good);border-color:color-mix(in srgb,var(--good) 40%,transparent)}
+.b-warn{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 40%,transparent)}
+.b-bad{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 40%,transparent)}
+.b-acc{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 45%,transparent)}
+.lead{font-size:17px;max-width:68ch;margin-top:14px}
+.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px 20px;display:grid;gap:8px;align-content:start}
+.fact .k{font-size:12px;color:var(--muted);letter-spacing:.04em}
+.fact .v{font-size:16px;font-weight:600}
+code,.path{font-family:var(--mono);font-size:12.5px;color:#cfd3dc;word-break:break-all}
+.tl{display:grid;gap:0;border-left:1px solid var(--line);margin-left:8px}
+.step{position:relative;padding:0 0 22px 26px;display:grid;gap:10px}
+.step:last-child{padding-bottom:0}
+.step::before{content:"";position:absolute;left:-6px;top:6px;width:11px;height:11px;border-radius:50%;background:var(--bg);border:2px solid var(--accent)}
+.step-head{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.step-head strong{font-size:16px}
+.cols{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+.cols .panel{padding:14px 16px}
+.lbl{font-size:12px;color:var(--muted)}
+table{width:100%;border-collapse:collapse;font-size:14px}
+.tbl{overflow-x:auto;background:var(--panel);border:1px solid var(--line);border-radius:16px}
+th,td{text-align:left;padding:12px 16px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12px;color:var(--muted);font-weight:600;letter-spacing:.04em}
+tr:last-child td{border-bottom:0}
+ul{margin:0;padding-left:18px;display:grid;gap:6px}
+.verdict{border-color:color-mix(in srgb,var(--warn) 45%,var(--line))}
+details{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px 20px}
+summary{cursor:pointer;font-weight:600}
+summary:focus-visible{outline:2px solid var(--accent);outline-offset:4px;border-radius:6px}
+@media (max-width:480px){h1{font-size:25px}.wrap{padding-inline:16px}}
+</style>
+
+<div class="wrap">
+
+<header>
+  <div class="meta"><span class="badge b-acc">项目讲解</span><span class="badge b-warn">部分可用</span><span>更新于 2026-09-15 PST</span><span>分支 <code>feature/pika-integration</code> · <code>b6c778f</code></span></div>
+  <h1 style="margin-top:14px">Jackfruit 核心功能</h1>
+  <p class="lead">用户打开 App，一边和 AI 语音聊天，一边给自己“孵化”出一个会动、会说话的数字分身。整个 App 目前只有这一段 Onboarding，聊完之后要进入的角色主页还没接上。</p>
+</header>
+
+<section>
+  <h2>一眼看懂</h2>
+  <div class="grid">
+    <div class="panel fact"><span class="k">产品形态</span><span class="v">4 个阶段的沉浸式 Onboarding</span><span class="muted">character-app，手机竖屏，首页 <code>/</code> 就是这个流程</span></div>
+    <div class="panel fact"><span class="k">谁来推进</span><span class="v">每一步都要用户自己点</span><span class="muted">没有后台自动跑的流程，AI 只在用户操作后才响应</span></div>
+    <div class="panel fact"><span class="k">谁来调内容</span><span class="v">运营在 admin-app 改配置</span><span class="muted">台词、配色、音乐、视频都存在数据库里，不用改代码</span></div>
+    <div class="panel fact"><span class="k">最大缺口</span><span class="v" style="color:var(--bad)">视频是假的，终点是死路</span><span class="muted">见下方“现状”</span></div>
+  </div>
+</section>
+
+<section>
+  <h2>三类参与者</h2>
+  <div class="grid">
+    <div class="panel"><h3>用户</h3><p class="muted">授权摄像头和麦克风，聊天、拍照、上传照片、给角色起名。</p></div>
+    <div class="panel"><h3>AI 服务</h3><p class="muted">OpenAI Realtime 负责语音对话；Gemini 负责看照片、分析性格和写台词；Flux Pro（FAL）负责出图；Veo 负责出视频。</p></div>
+    <div class="panel"><h3>运营 / 设计</h3><p class="muted">在 admin-app 的 Onboarding Configs 和 Theme Editor 里改 <code>onboarding_configs</code>，用户下次打开就生效。</p></div>
+  </div>
+</section>
+
+<section>
+  <h2>用户流程</h2>
+  <p class="muted" style="margin-bottom:18px;max-width:68ch">打个餐馆的比方：Stage 1 是进门迎宾，Stage 2 是点菜，Stage 3 是等上菜，Stage 4 是端菜上桌。每个阶段结束时，数据都会写进 <code>onboarding_sessions</code>。</p>
+  <div class="tl">
+    <div class="step">
+      <div class="step-head"><strong>Stage 1 · 系统启动</strong><span class="badge b-good">可用</span></div>
+      <div class="cols">
+        <div class="panel"><span class="lbl">用户看到</span><p>终端风格的开机动画、一个数据球，屏幕显示“Hey, I'm Pika”，然后点 INITIATE TALKING。</p></div>
+        <div class="panel"><span class="lbl">背后发生</span><p>请求摄像头和麦克风权限，同时提前连上 OpenAI 语音，这样进入 Stage 2 时不用等。</p><span class="path">OnboardingEngine.jsx:306</span></div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-head"><strong>Stage 2 · 照镜子</strong><span class="badge b-good">可用</span></div>
+      <div class="cols">
+        <div class="panel"><span class="lbl">用户看到</span><p>全屏自拍画面。AI 用语音聊两句，然后拍照，再看生成出来的形象。</p></div>
+        <div class="panel"><span class="lbl">背后发生</span><p>Gemini 分析照片里的场景和穿着，Flux Pro 生成<b>正面形象图</b>和<b>背影图</b>。</p><span class="path">Stage2Mirror.jsx:250–300</span></div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-head"><strong>Stage 3 · 锻造</strong><span class="badge b-warn">文本可用 · 视频失败</span></div>
+      <div class="cols">
+        <div class="panel"><span class="lbl">用户看到</span><p>一个进度条。AI 让用户上传几张“记忆碎片”照片，完成后显示 SHOW ME 按钮。</p></div>
+        <div class="panel"><span class="lbl">背后发生</span><p>Gemini 分析性格并写一段自我介绍台词，再用“背影 → 正面”两张图生成转身视频。</p><span class="path">Stage3Forging.jsx:100–150</span></div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-head"><strong>Stage 4 · 活过来</strong><span class="badge b-bad">示例视频</span></div>
+      <div class="cols">
+        <div class="panel"><span class="lbl">用户看到</span><p>播放角色视频，给角色起名，然后点 ENTER WORLD。</p></div>
+        <div class="panel"><span class="lbl">设计上应该发生</span><p>角色用口型同步视频做自我介绍，再穿过传送门进入主界面。现在这两段都是示例视频。</p><span class="path">Stage4Avatar.jsx:62, 153</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>为什么改流程只改数据库</h2>
+  <div class="panel" style="max-width:820px">
+    <p>要解决的问题是：文案、视觉和素材需要反复调整，而调整的人不写代码。所以每个阶段的台词、颜色和视频地址都存成 <code>onboarding_configs</code> 里的 JSONB，前端只负责读取和显示。配置读取失败时，前端会用内置的默认配置，流程照样能走完（<span class="path">OnboardingEngine.jsx:95</span>）。</p>
+    <p class="muted">历史遗留：4 个 Stage 在数据库里仍然用旧的 7-step 字段名，Stage 2 对应 <code>step_3_identity_input</code>，Stage 3 对应 <code>step_5_creation</code>，编号是跳着的（<span class="path">OnboardingEngine.jsx:74</span>）。</p>
+  </div>
+</section>
+
+<section>
+  <h2>现状：哪些真的能用</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>能力</th><th>状态</th><th>证据</th></tr></thead>
+    <tbody>
+      <tr><td>开机动画、权限请求、语音对话</td><td><span class="badge b-good">已确认</span></td><td><span class="path">Stage1Boot.jsx</span> · <span class="path">openaiRealtimeService.js</span></td></tr>
+      <tr><td>照片分析，生成正面图和背影图</td><td><span class="badge b-good">已确认</span></td><td>调用 <code>generate-starting-image</code>，模型 <code>fal-ai/flux-pro/v1.1-ultra</code>（<span class="path">imageGenerationService.js:61</span>）</td></tr>
+      <tr><td>性格分析和自我介绍台词</td><td><span class="badge b-good">已确认</span></td><td><span class="path">geminiService.js</span>，失败时换成固定的默认人设</td></tr>
+      <tr><td>转身视频生成</td><td><span class="badge b-bad">FAIL</span></td><td>代码调用 <code>generate-video-veo</code>（<span class="path">imageGenerationService.js:189</span>），但 <span class="path">supabase/functions/</span> 里没有这个函数，所以会退回 <code>/mock-videos/revealing.mp4</code>。已部署的远程环境里有没有这个函数<b>未验证</b>。</td></tr>
+      <tr><td>口型同步视频、传送门转场</td><td><span class="badge b-bad">MOCK</span></td><td>代码里标着 TODO，直接用示例视频（<span class="path">Stage4Avatar.jsx:153–159</span>）</td></tr>
+      <tr><td>Onboarding 结束后进入角色主页</td><td><span class="badge b-bad">断开</span></td><td>会跳到 <code>/character/:id</code>（<span class="path">OnboardingEngine.jsx:358</span>），但这个路由在 <span class="path">App.jsx</span> 里被注释掉了</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section>
+  <h2>文档和代码对不上的地方</h2>
+  <div class="grid">
+    <div class="panel"><span class="badge b-warn" style="justify-self:start">NEEDS-FIX</span><h3>CLAUDE.md 的生成链路</h3><p class="muted">文档写的是 Gemini → SeeDream → SeeDance，并且每一步都写回 <code>character_statuses</code>、可以断点恢复。代码实际用的是 Flux Pro + Veo，没有写回这张表，所以这条路径做不到断点恢复。</p></div>
+    <div class="panel"><span class="badge b-warn" style="justify-self:start">NEEDS-FIX</span><h3>README 已过时</h3><p class="muted">根目录的 <span class="path">README.md</span> 还在介绍 LookGen（换脸 + 社交 feed）。这部分已经从 monorepo 移除（<code>2cc9b4d</code>），但 admin-app 里 lookgen 的两个页面还挂在路由上。</p></div>
+    <div class="panel"><span class="badge" style="justify-self:start">闲置</span><h3>admin 的角色状态模块</h3><p class="muted">Characters、Statuses 和 Prompts 是给角色主页准备的。角色主页被注释掉了，所以用户目前看不到这些配置的效果。</p></div>
+  </div>
+</section>
+
+<section>
+  <div class="panel verdict">
+    <div class="step-head"><span class="badge b-warn">判断</span><strong>体验的高光时刻目前是假的</strong></div>
+    <p>用户在 Stage 3 和 Stage 4 看到的“自己的视频”，其实是所有人都一样的示例视频；点 ENTER WORLD 后也没有页面可去。建议按下面的顺序处理：</p>
+    <ul>
+      <li>接通视频生成：补上 <code>generate-video-veo</code>，或者改成调用现有的 <code>generate-single-video</code>。</li>
+      <li>给 Stage 4 结束后准备一个能进入的页面：恢复角色主页，或者先放一个完成页。</li>
+      <li>把 CLAUDE.md 和 README 更新成现在真实的架构。</li>
+    </ul>
+  </div>
+</section>
+
+<details>
+  <summary>关键文件索引</summary>
+  <ul style="margin-top:12px">
+    <li><span class="path">character-app/src/pages/Onboarding/OnboardingEngine.jsx</span>：负责 4 个阶段的切换、读取配置、记录会话</li>
+    <li><span class="path">character-app/src/pages/Onboarding/stages/Stage1Boot.jsx … Stage4Avatar.jsx</span>：每个阶段的页面</li>
+    <li><span class="path">character-app/src/services/</span>：OpenAI Realtime、Gemini、出图出视频、存储</li>
+    <li><span class="path">character-app/New design.md</span>：UX 原理和线框图</li>
+    <li><span class="path">admin-app/src/pages/onboarding/</span>：Onboarding 配置和主题编辑器</li>
+    <li><span class="path">supabase/functions/</span>：generate-starting-image、generate-single-video、minimax-tts 等 edge function</li>
+  </ul>
+</details>
+
+</div>

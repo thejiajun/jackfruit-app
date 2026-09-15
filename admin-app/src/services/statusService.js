@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient'
+import { generatePikaVideo } from './pikaVideoService'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 
@@ -165,31 +166,18 @@ export const statusService = {
     }
   },
 
-  // Step 3: 生成单个视频（调用 FAL SeeDance）
+  // Step 3: 生成单个视频（Cloudflare Worker → Pika Business API）
   async generateSingleVideo(statusId, startingImageUrl, scenePrompt, mood, videoDuration = 3) {
-    const response = await fetch(`${SUPABASE_URL}/functions/v1/generate-single-video`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
-      },
-      body: JSON.stringify({
-        status_id: statusId,
-        starting_image_url: startingImageUrl,
-        scene_prompt: scenePrompt,
-        mood,
-        video_duration: videoDuration
-      })
+    const duration = videoDuration <= 5 ? 5 : 10
+    const videoUrl = await generatePikaVideo({
+      mode: 'image-to-video',
+      image_url: startingImageUrl,
+      prompt: `${scenePrompt}. The character's mood is ${mood}. Smooth natural movement.`,
+      aspect_ratio: '9:16',
+      resolution: '720p',
+      duration
     })
-
-    if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.error || 'Video generation failed')
-    }
-
-    const result = await response.json()
-    // Edge Function returns {success: true, data: {...}}
-    return result.data || result
+    return { video_url: videoUrl, duration, status_id: statusId }
   },
 
   // 上传视频到 Storage
@@ -198,7 +186,7 @@ export const statusService = {
     const fileName = `${Date.now()}.${fileExt}`
     const filePath = `videos/${fileName}`
 
-    const { data, error } = await supabase.storage
+    const { error } = await supabase.storage
       .from('character-videos')
       .upload(filePath, file, {
         cacheControl: '3600',
@@ -221,7 +209,7 @@ export const statusService = {
     const fileName = `${Date.now()}.${fileExt}`
     const filePath = `starting-images/${fileName}`
 
-    const { data, error } = await supabase.storage
+    const { error } = await supabase.storage
       .from('character-videos')
       .upload(filePath, file, {
         cacheControl: '3600',

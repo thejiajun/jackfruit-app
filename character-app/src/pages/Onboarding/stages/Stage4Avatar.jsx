@@ -18,7 +18,7 @@ import '../../Onboarding/styles/onboarding.css'
  * → TRANSITION 阶段:播放传送门视频,进入角色世界
  *
  * 技术实现:
- * - 视频生成:FAL SeeDance API(后台在 Stage 3 触发)
+ * - 视频生成:Cloudflare Worker 请求 Pika Business API(Stage 3 触发)
  * - 状态机:6 个阶段顺序切换(loading → revealing → naming → generating → lipsync → transition)
  * - 防重复提交:使用 isSubmitting 锁,避免用户连续点击或视频重复触发
  */

@@ -11,8 +11,11 @@
   "scripts": {
     "dev:character": "cd character-app && npm run dev",
     "dev:admin": "cd admin-app && npm run dev",
+    "dev:api": "npm --prefix cloudflare/pika-api run dev",
     "build:character": "cd character-app && npm run build",
-    "build:admin": "cd admin-app && npm run build"
+    "build:admin": "cd admin-app && npm run build",
+    "check:api": "npm --prefix cloudflare/pika-api run check",
+    "deploy:api": "npm --prefix cloudflare/pika-api run deploy"
   },
   "dependencies": {},
   "devDependencies": {}

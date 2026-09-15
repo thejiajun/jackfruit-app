@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient'
+import { generatePikaVideo } from './pikaVideoService'
 
 /**
  * 【服务模块】AI 身份图像生成服务 - 将用户照片转换为优化的数字形象
@@ -172,7 +173,7 @@ export async function generateWithRetry(userPhotoBase64, analysisContext, maxRet
 }
 
 /**
- * 【新功能】生成过渡视频 (Google Veo)
+ * 【新功能】通过 Pika Business API 生成关键帧过渡视频
  * 从黑白背影照过渡到彩色 Identity 照
  * 
  * @param {string} firstFrameUrl - 起始帧 (黑白背影)
@@ -183,25 +184,16 @@ export async function generateTransitionVideo(firstFrameUrl, lastFrameUrl) {
   console.log('[mediaGenerationService] Generating transition video...')
 
   try {
-    // 调用 Edge Function (假设有一个支持 Veo 的 endpoint)
-    // 如果没有专门的 generate-video，可能需要更新 generate-starting-image 或新建
-    // 这里假设我们使用 generate-video-veo
-    const { data, error } = await supabase.functions.invoke('generate-video-veo', {
-      body: {
-        first_frame_image_url: firstFrameUrl,
-        last_frame_image_url: lastFrameUrl,
-        aspect_ratio: "9:16",
-        model_id: "google/veo-3.1-fast", // 🔥 指定 Veo 3.1 Fast
-        prompt: "Cinematic transition from back view to front view, high quality, smooth motion"
-      }
+    const videoUrl = await generatePikaVideo({
+      mode: 'keyframes',
+      image_urls: [firstFrameUrl, lastFrameUrl],
+      aspect_ratio: '9:16',
+      resolution: '720p',
+      duration: 5,
+      prompt: 'Cinematic transition from back view to front view, preserve the same character identity, smooth natural motion'
     })
-
-    if (error) {
-      throw new Error(`Video generation failed: ${error.message}`)
-    }
-
-    console.log('[mediaGenerationService] Video generated:', data.video_url)
-    return data.video_url
+    console.log('[mediaGenerationService] Video generated:', videoUrl)
+    return videoUrl
 
   } catch (error) {
     console.error('[mediaGenerationService] Error generating video:', error)
